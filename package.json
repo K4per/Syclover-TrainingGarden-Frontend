@@ -1,7 +1,7 @@
 {
   "name": "syclover-training-garden-frontend",
   "private": true,
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.2-alpha.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,9 +10,10 @@
   },
   "dependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
+    "dompurify": "^3.4.15",
+    "marked": "^18.0.13",
     "vite": "^7.1.7",
     "vue": "^3.5.22",
     "vue-router": "^4.5.1"
-  },
-  "devDependencies": {}
+  }
 }
