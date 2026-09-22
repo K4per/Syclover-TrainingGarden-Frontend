@@ -1,5 +1,7 @@
 # Syclover Training Garden Frontend
 
+当前版本：**Alpha0.0.4-hotfix.1**。CTF 分类主题使用 CSS 线条图形，不依赖 Emoji。
+
 版本：**Alpha0.0.3-hotfix.2**
 
 Vue 3 + Vite 实现的 Syclover 训练平台界面，提供独立 CTF/AWDP 题库、五级难度、分类筛选、Solves/血榜、Markdown 详情与 Hints，以及包含即时镜像构建的管理员控制台。
