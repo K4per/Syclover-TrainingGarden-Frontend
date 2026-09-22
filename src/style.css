@@ -192,11 +192,15 @@ h1,h2,p { margin-top:0; }h1 { font-size:clamp(38px,5vw,66px);line-height:1.04;le
 .theme-misc { --theme:#61dfc9; --theme-rgb:77,208,180; --theme-icon:""; }
 .challenge-card { border-top:2px solid var(--theme,var(--green)); background:linear-gradient(145deg,rgba(var(--theme-rgb,56,239,125),.16),#091711); }
 .challenge-card::before { content:""; width:52px;height:52px;right:18px;top:28px;opacity:.3;pointer-events:none;border:2px solid var(--theme); }
-.theme-pwn.challenge-card::before { border-radius:50%;box-shadow:0 0 0 7px transparent, inset 0 0 0 3px rgba(var(--theme-rgb),.22); }
-.theme-web.challenge-card::before { border-radius:50%;background:linear-gradient(90deg,transparent 47%,var(--theme) 48%,var(--theme) 52%,transparent 53%),linear-gradient(0deg,transparent 47%,var(--theme) 48%,var(--theme) 52%,transparent 53%); }
-.theme-reverse.challenge-card::before { border-radius:50%;border-right-color:transparent;transform:rotate(-35deg); }
-.theme-crypto.challenge-card::before { border-radius:5px;transform:rotate(45deg) scale(.72); }
-.theme-misc.challenge-card::before { border-radius:8px;transform:rotate(45deg) scale(.72); }
+.theme-pwn.challenge-card::before { width:39px;height:39px;right:25px;top:35px;border-radius:50%;box-shadow:0 -11px 0 -8px var(--theme); }
+.theme-pwn.challenge-card::after { content:"";position:absolute;width:16px;height:9px;right:33px;top:22px;border:2px solid var(--theme);border-bottom:0;border-radius:50% 50% 0 0;transform:rotate(-25deg);opacity:.3; }
+.theme-web.challenge-card::before { border-radius:50%;background:linear-gradient(90deg,transparent 38%,var(--theme) 40%,var(--theme) 43%,transparent 45%,transparent 57%,var(--theme) 59%,var(--theme) 62%,transparent 64%),linear-gradient(0deg,transparent 38%,var(--theme) 40%,var(--theme) 43%,transparent 45%,transparent 57%,var(--theme) 59%,var(--theme) 62%,transparent 64%); }
+.theme-reverse.challenge-card::before { border-radius:50%;border-width:3px;border-right-color:transparent;transform:rotate(-35deg); }
+.theme-reverse.challenge-card::after { content:"";position:absolute;width:13px;height:13px;right:18px;top:45px;border-left:3px solid var(--theme);border-bottom:3px solid var(--theme);transform:rotate(35deg);opacity:.3; }
+.theme-crypto.challenge-card::before { width:35px;height:29px;right:26px;top:42px;border-radius:4px;transform:none; }
+.theme-crypto.challenge-card::after { content:"";position:absolute;width:18px;height:18px;right:34px;top:28px;border:3px solid var(--theme);border-bottom:0;border-radius:12px 12px 0 0;opacity:.3; }
+.theme-misc.challenge-card::before { width:39px;height:39px;right:25px;top:35px;border-radius:8px 3px 8px 3px;transform:none; }
+.theme-misc.challenge-card::after { content:"";position:absolute;width:14px;height:14px;right:18px;top:42px;border:2px solid var(--theme);border-radius:50%;background:#10231a;opacity:.3; }
 .challenge-card>* { position:relative; }
 .challenge-card .category { color:var(--theme,var(--green)); }
 .challenge-card:hover { border-color:var(--theme,var(--green)); }
