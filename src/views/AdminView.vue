@@ -363,6 +363,13 @@ async function updateUser(user, changes) {
   try { Object.assign(user, await api(`/users/${user.id}`, { method: 'PATCH', body: changes })) }
   catch (err) { notice.value = { error: true, text: err.message } }
 }
+async function grantAchievement(user, slug) {
+  try {
+    await api(`/users/${user.id}/achievements/${slug}`, { method: 'POST' })
+    user.achievement_slugs = [...new Set([...(user.achievement_slugs || []), slug])]
+    notice.value = { text: slug === 'core_member' ? `已授予 ${user.username} 核心组成员徽章` : '成就已授予' }
+  } catch (err) { notice.value = { error: true, text: err.message } }
+}
 async function deleteUser(user) {
   if (!window.confirm(`确定删除成员“${user.username}”吗？该成员的提交、实例和补丁都会被删除。`)) return
   try { await api(`/users/${user.id}`, { method: 'DELETE' }); users.value = users.value.filter((item) => item.id !== user.id); notice.value = { text: '成员已删除' } }
@@ -375,7 +382,7 @@ onMounted(load)
   <section>
     <div class="page-heading">
       <div>
-        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.4-HOTFIX.1</p>
+        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.5</p>
         <h1>平台管理<span class="accent">.</span></h1>
         <p class="lead">管理题目镜像、Hints、成员与上线状态。</p>
       </div>
@@ -445,7 +452,7 @@ onMounted(load)
 
     <div v-if="tab === 'users'" class="panel table-panel">
       <div class="data-row user-data data-head"><span>成员</span><span>角色</span><span>状态</span><span>加入时间</span><span>操作</span></div>
-      <div v-for="user in users" :key="user.id" class="data-row user-data"><span><b>{{ user.username }}</b><small>{{ user.id.slice(0, 8) }}</small></span><span><select :value="user.role" :disabled="user.id === session.user?.id" @change="updateUser(user, { role: $event.target.value })"><option value="player">选手</option><option value="admin">管理员</option></select></span><span><i :class="['status-pill', user.is_active ? 'published' : 'archived']">{{ user.is_active ? 'active' : 'disabled' }}</i></span><span>{{ new Date(user.created_at).toLocaleDateString('zh-CN') }}</span><span class="row-actions"><button class="text-button" :disabled="user.id === session.user?.id" @click="updateUser(user, { is_active: !user.is_active })">{{ user.is_active ? '禁用' : '启用' }}</button><button class="text-button danger" :disabled="user.id === session.user?.id" @click="deleteUser(user)">删除</button></span></div>
+      <div v-for="user in users" :key="user.id" class="data-row user-data"><span><RouterLink class="admin-user-link" :to="`/profile/${user.id}`"><b>{{ user.username }}</b></RouterLink><small>{{ user.direction || '未设置方向' }} · {{ user.id.slice(0, 8) }}</small><span class="admin-achievements"><i v-if="user.achievement_slugs?.includes('sprout_member')" class="mini-badge sprout">新芽</i><i v-if="user.achievement_slugs?.includes('core_member')" class="mini-badge core">核心</i></span></span><span><select :value="user.role" :disabled="user.id === session.user?.id" @change="updateUser(user, { role: $event.target.value })"><option value="player">选手</option><option value="admin">管理员</option></select></span><span><i :class="['status-pill', user.is_active ? 'published' : 'archived']">{{ user.is_active ? 'active' : 'disabled' }}</i></span><span>{{ new Date(user.created_at).toLocaleDateString('zh-CN') }}</span><span class="row-actions"><button v-if="!user.achievement_slugs?.includes('core_member')" class="text-button" @click="grantAchievement(user, 'core_member')">授予核心组</button><button class="text-button" :disabled="user.id === session.user?.id" @click="updateUser(user, { is_active: !user.is_active })">{{ user.is_active ? '禁用' : '启用' }}</button><button class="text-button danger" :disabled="user.id === session.user?.id" @click="deleteUser(user)">删除</button></span></div>
     </div>
 
     <div v-if="buildPanel.active" ref="buildPanelElement" class="panel build-panel">

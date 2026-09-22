@@ -25,14 +25,19 @@ function logout() {
         <button class="menu-toggle" aria-label="切换导航" @click="menuOpen = !menuOpen">☰</button>
         <nav :class="{ open: menuOpen }">
           <RouterLink to="/" @click="menuOpen = false">总览</RouterLink>
-          <RouterLink to="/ctf" @click="menuOpen = false">CTF 题库</RouterLink>
-          <RouterLink to="/awdp" @click="menuOpen = false">AWDP 题库</RouterLink>
+          <RouterLink to="/practice" @click="menuOpen = false">练习大厅</RouterLink>
           <RouterLink to="/scoreboard" @click="menuOpen = false">排行榜</RouterLink>
           <RouterLink v-if="session.user?.role === 'admin'" to="/admin" @click="menuOpen = false">管理</RouterLink>
         </nav>
         <div class="user-menu">
           <span class="status-dot" />
-          <span>{{ session.user?.username }}</span>
+          <RouterLink class="user-profile-link" to="/profile" @click="menuOpen = false">
+            <span class="user-avatar">
+              <img v-if="session.user?.avatar_url" :src="session.user.avatar_url" :alt="`${session.user.username} 的头像`">
+              <span v-else>{{ session.user?.username?.slice(0, 1).toUpperCase() }}</span>
+            </span>
+            <span class="user-name">{{ session.user?.username }}</span>
+          </RouterLink>
           <span class="role-tag">{{ session.user?.role === 'admin' ? '管理员' : '选手' }}</span>
           <button class="text-button" @click="logout">退出</button>
         </div>
@@ -44,6 +49,6 @@ function logout() {
         <Transition name="page" mode="out-in"><component :is="Component" :key="route.fullPath" /></Transition>
       </RouterView>
     </main>
-    <footer v-if="loggedIn">Syclover Security Team · Alpha0.0.4-hotfix.1 · Grow through breaking &amp; building</footer>
+    <footer v-if="loggedIn">Syclover Security Team · Alpha0.0.5 · Grow through breaking &amp; building</footer>
   </div>
 </template>

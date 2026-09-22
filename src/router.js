@@ -7,19 +7,24 @@ import ChallengeView from './views/ChallengeView.vue'
 import DefenseView from './views/DefenseView.vue'
 import ScoreboardView from './views/ScoreboardView.vue'
 import AdminView from './views/AdminView.vue'
+import PracticeHallView from './views/PracticeHallView.vue'
+import ProfileView from './views/ProfileView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', component: LoginView, meta: { public: true } },
     { path: '/', component: DashboardView },
-    { path: '/challenges', redirect: '/ctf' },
+    { path: '/challenges', redirect: '/practice' },
+    { path: '/practice', component: PracticeHallView },
     { path: '/ctf', component: ChallengesView, meta: { mode: 'ctf' } },
     { path: '/ctf/:id', component: ChallengeView },
     { path: '/awdp', component: ChallengesView, meta: { mode: 'awdp' } },
     { path: '/awdp/:id', component: DefenseView },
     { path: '/defense', redirect: '/awdp' },
     { path: '/scoreboard', component: ScoreboardView },
+    { path: '/profile', component: ProfileView },
+    { path: '/profile/:id', component: ProfileView },
     { path: '/admin', component: AdminView, meta: { admin: true } },
   ],
 })

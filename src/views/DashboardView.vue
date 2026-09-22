@@ -29,7 +29,7 @@ onMounted(async () => {
         <h1>晚上好，{{ session.user?.username }}<span class="accent">.</span></h1>
         <p class="lead">选择一个目标，启动隔离环境，然后开始今天的训练。</p>
       </div>
-      <RouterLink class="primary" to="/ctf">进入 CTF 训练场 →</RouterLink>
+      <RouterLink class="primary" to="/practice">进入练习大厅 →</RouterLink>
     </div>
     <p v-if="error" class="alert error">{{ error }}</p>
     <div class="stat-grid">
@@ -40,7 +40,7 @@ onMounted(async () => {
     </div>
     <div class="two-column dashboard-content">
       <div class="panel">
-        <div class="section-heading"><div><p class="eyebrow">RECOMMENDED TARGETS</p><h2>继续训练</h2></div><RouterLink to="/ctf">查看题库</RouterLink></div>
+        <div class="section-heading"><div><p class="eyebrow">RECOMMENDED TARGETS</p><h2>继续训练</h2></div><RouterLink to="/practice">查看题库</RouterLink></div>
         <div v-if="!challenges.length" class="empty">暂无已发布题目</div>
         <RouterLink v-for="challenge in challenges.slice(0, 4)" :key="challenge.id" class="compact-challenge" :to="`/${challenge.mode}/${challenge.id}`">
           <span class="mode-icon">{{ challenge.mode === 'ctf' ? 'CTF' : 'AW' }}</span>
