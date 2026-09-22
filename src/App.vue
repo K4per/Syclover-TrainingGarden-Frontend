@@ -42,6 +42,6 @@ function logout() {
     <main :class="{ 'page-wrap': loggedIn }">
       <RouterView :key="route.fullPath" />
     </main>
-    <footer v-if="loggedIn">Syclover Security Team · Alpha0.0.3 · Grow through breaking &amp; building</footer>
+    <footer v-if="loggedIn">Syclover Security Team · Alpha0.0.4 · Grow through breaking &amp; building</footer>
   </div>
 </template>

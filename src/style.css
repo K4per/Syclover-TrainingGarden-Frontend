@@ -179,3 +179,7 @@ h1,h2,p { margin-top:0; }h1 { font-size:clamp(38px,5vw,66px);line-height:1.04;le
 .row-progress small { color:#5d7568;font-size:9px; }
 .instance-flag.admin-only { border-color:#5d5027;background:#1a1708; }
 .instance-flag.admin-only b { color:var(--amber); }
+
+/* Hotfix: tag manager header and creation form. */
+.tag-heading { display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding-bottom:18px; }
+.tag-heading .primary { padding:9px 16px;font-size:12px; }

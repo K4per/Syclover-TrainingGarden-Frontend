@@ -14,6 +14,7 @@ let buildTimer = null
 const progressTimers = new Map()
 const tagEditor = ref(null)
 const tagDraft = reactive({ name: '', description: '' })
+const tagCreator = reactive({ open: false, name: '', description: '' })
 const challengeTagEditor = ref(null)
 const challengeTagDraft = ref([])
 const challengeTagDraftInput = ref('')
@@ -86,6 +87,26 @@ async function saveChallengeTags() {
     challengeTagEditor.value = null
     tagCatalog.value = await api('/challenges/tags/catalog')
     notice.value = { text: '题目标签已更新' }
+  } catch (err) { notice.value = { error: true, text: err.message } }
+}
+
+function openTagCreator() {
+  tagCreator.open = true
+  tagCreator.name = ''
+  tagCreator.description = ''
+}
+
+async function createTag() {
+  try {
+    await api('/challenges/tags', {
+      method: 'POST',
+      body: { name: tagCreator.name, description: tagCreator.description || null },
+    })
+    tagCreator.open = false
+    tagCreator.name = ''
+    tagCreator.description = ''
+    tagCatalog.value = await api('/challenges/tags/catalog')
+    notice.value = { text: '标签已创建，可在题目上选用' }
   } catch (err) { notice.value = { error: true, text: err.message } }
 }
 
@@ -440,7 +461,10 @@ onMounted(load)
     </div>
 
     <div v-if="tab === 'tags'" class="panel">
-      <div class="form-heading"><div><p class="eyebrow">TAG CATALOG</p><h2>标签管理</h2></div></div>
+      <div class="form-heading tag-heading">
+        <div><p class="eyebrow">TAG CATALOG</p><h2>标签管理</h2></div>
+        <button class="primary" type="button" @click="openTagCreator">＋ 新建标签</button>
+      </div>
       <p class="muted">知识点标签可重命名和删除；动态/静态由题目环境自动判定，不能修改。</p>
       <div class="data-row tag-data data-head"><span>标签</span><span>类型</span><span>题目数</span><span>说明</span><span>操作</span></div>
       <div v-for="entry in tagCatalog" :key="entry.id" class="data-row tag-data">
@@ -456,6 +480,12 @@ onMounted(load)
           <span v-else class="muted">自动维护</span>
         </span>
       </div>
+      <form v-if="tagCreator.open" class="inline-tag-form" @submit.prevent="createTag">
+        <label>新标签名<input v-model.trim="tagCreator.name" required minlength="1" maxlength="32" placeholder="例如：stack-overflow"></label>
+        <label>说明<input v-model.trim="tagCreator.description" maxlength="200" placeholder="可选"></label>
+        <button class="primary" type="submit">创建</button>
+        <button class="text-button" type="button" @click="tagCreator.open = false">取消</button>
+      </form>
       <form v-if="tagEditor" class="inline-tag-form" @submit.prevent="saveTag">
         <label>标签名<input v-model.trim="tagDraft.name" required minlength="1" maxlength="32"></label>
         <label>说明<input v-model.trim="tagDraft.description" maxlength="200" placeholder="可选"></label>
