@@ -6,6 +6,10 @@ import TagChips from '../components/TagChips.vue'
 const users = ref([])
 const challenges = ref([])
 const tagCatalog = ref([])
+const invites = ref([])
+const inviteFilter = ref('all')
+const inviteBusy = ref(false)
+const inviteForm = reactive({ count: 1, note: '' })
 const tab = ref('challenges')
 const notice = ref(null)
 const saving = ref(false)
@@ -41,13 +45,65 @@ const tagLabel = (name) => ({ dynamic: '动态', static: '静态', web: 'Web', p
 
 async function load() {
   try {
-    const requests = [api('/challenges'), api('/challenges/tags/catalog')]
+    const requests = [api('/challenges'), api('/challenges/tags/catalog'), api('/invites')]
     if (isRootAdmin.value) requests.unshift(api('/users'))
     const values = await Promise.all(requests)
     if (isRootAdmin.value) users.value = values.shift()
     challenges.value = values[0]
     tagCatalog.value = values[1]
+    invites.value = values[2]
   } catch (err) { notice.value = { error: true, text: err.message } }
+}
+
+async function refreshInvites() {
+  try {
+    invites.value = await api(`/invites?state=${inviteFilter.value}`)
+  } catch (err) { notice.value = { error: true, text: err.message } }
+}
+
+function filterInvites(state) {
+  inviteFilter.value = state
+  refreshInvites()
+}
+
+async function createInvites() {
+  inviteBusy.value = true
+  try {
+    const created = await api('/invites', {
+      method: 'POST',
+      body: { count: Number(inviteForm.count), note: inviteForm.note || null },
+    })
+    inviteFilter.value = 'all'
+    await refreshInvites()
+    inviteForm.note = ''
+    notice.value = { text: `已生成 ${created.length} 个邀请码：${created.map((item) => item.code).join('、')}` }
+  } catch (err) { notice.value = { error: true, text: err.message } }
+  finally { inviteBusy.value = false }
+}
+
+async function revokeInvite(item) {
+  if (!window.confirm(`确定作废邀请码 ${item.code} 吗？作废后无法再用于注册。`)) return
+  try {
+    await api(`/invites/${item.id}`, { method: 'DELETE' })
+    await refreshInvites()
+    notice.value = { text: `邀请码 ${item.code} 已作废` }
+  } catch (err) { notice.value = { error: true, text: err.message } }
+}
+
+async function copyInvite(code) {
+  try {
+    await navigator.clipboard.writeText(code)
+    notice.value = { text: `已复制 ${code}` }
+  } catch { notice.value = { error: true, text: `复制失败，请手动记录：${code}` } }
+}
+
+async function copyUnusedInvites() {
+  const unused = invites.value.filter((item) => item.status === 'unused').map((item) => item.code)
+  if (!unused.length) { notice.value = { error: true, text: '当前列表没有未使用的邀请码' }; return }
+  try {
+    await navigator.clipboard.writeText(unused.join('\n'))
+    notice.value = { text: `已复制 ${unused.length} 个未使用邀请码` }
+  } catch { notice.value = { error: true, text: unused.join('、') } }
 }
 
 function toggleDynamicFlag() {
@@ -387,12 +443,12 @@ onMounted(load)
   <section>
     <div class="page-heading">
       <div>
-        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.6</p>
+        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.6-HOTFIX.1</p>
         <h1>平台管理<span class="accent">.</span></h1>
-        <p class="lead">管理题目镜像、Hints、成员与上线状态。</p>
+        <p class="lead">管理题目镜像、Hints、邀请码、成员与上线状态。</p>
       </div>
     </div>
-    <div class="tabs admin-tabs"><button :class="{ active: tab === 'challenges' }" @click="tab = 'challenges'">题目管理</button><button :class="{ active: tab === 'tags' }" @click="tab = 'tags'">标签管理</button><button v-if="isRootAdmin" :class="{ active: tab === 'users' }" @click="tab = 'users'">成员管理</button><button :class="{ active: tab === 'create' }" @click="tab = 'create'">＋ 上传题目</button></div>
+    <div class="tabs admin-tabs"><button :class="{ active: tab === 'challenges' }" @click="tab = 'challenges'">题目管理</button><button :class="{ active: tab === 'tags' }" @click="tab = 'tags'">标签管理</button><button :class="{ active: tab === 'invites' }" @click="tab = 'invites'">邀请码</button><button v-if="isRootAdmin" :class="{ active: tab === 'users' }" @click="tab = 'users'">成员管理</button><button :class="{ active: tab === 'create' }" @click="tab = 'create'">＋ 上传题目</button></div>
     <p v-if="notice" :class="['alert', notice.error ? 'error' : 'success']">{{ notice.text }}</p>
 
     <div v-if="tab === 'challenges'" class="panel table-panel">
@@ -452,6 +508,41 @@ onMounted(load)
             <button class="text-button danger" @click="deleteHint(hint)">删除</button>
           </div>
         </article>
+      </div>
+    </div>
+
+    <div v-if="tab === 'invites'" class="invite-console">
+      <div class="panel invite-generator">
+        <div class="form-heading">
+          <p class="eyebrow">INVITATION CODES</p>
+          <h2>生成一次性邀请码</h2>
+        </div>
+        <p class="muted">注册必须填写邀请码，每个邀请码只能注册一个账号；已使用的记录会保留用于审计，不能作废。</p>
+        <form class="invite-form" @submit.prevent="createInvites">
+          <label>数量<input v-model.number="inviteForm.count" type="number" min="1" max="50" required></label>
+          <label>备注<input v-model.trim="inviteForm.note" maxlength="120" placeholder="例如：2026 秋招"></label>
+          <button class="primary" type="submit" :disabled="inviteBusy">{{ inviteBusy ? '生成中…' : '生成邀请码 →' }}</button>
+        </form>
+      </div>
+      <div class="panel table-panel">
+        <div class="invite-toolbar">
+          <div class="tabs">
+            <button :class="{ active: inviteFilter === 'all' }" @click="filterInvites('all')">全部</button>
+            <button :class="{ active: inviteFilter === 'unused' }" @click="filterInvites('unused')">未使用</button>
+            <button :class="{ active: inviteFilter === 'used' }" @click="filterInvites('used')">已使用</button>
+          </div>
+          <button class="text-button" @click="copyUnusedInvites">复制未使用邀请码</button>
+        </div>
+        <div class="data-row invite-data data-head"><span>邀请码</span><span>备注</span><span>状态</span><span>使用人</span><span>生成 / 使用时间</span><span>操作</span></div>
+        <p v-if="!invites.length" class="muted invite-empty">还没有邀请码，先生成一个再发给新成员。</p>
+        <div v-for="item in invites" :key="item.id" class="data-row invite-data">
+          <span><b class="invite-code">{{ item.code }}</b><small>由 {{ item.created_by_username || '已删除的管理员' }} 生成</small></span>
+          <span>{{ item.note || '—' }}</span>
+          <span><i :class="['status-pill', item.status === 'used' ? 'archived' : 'published']">{{ item.status === 'used' ? '已使用' : '未使用' }}</i></span>
+          <span>{{ item.used_by_username || '—' }}</span>
+          <span><small>生成 {{ new Date(item.created_at).toLocaleString('zh-CN') }}</small><small v-if="item.used_at">使用 {{ new Date(item.used_at).toLocaleString('zh-CN') }}</small></span>
+          <span class="row-actions"><button class="text-button" @click="copyInvite(item.code)">复制</button><button v-if="item.status !== 'used'" class="text-button danger" @click="revokeInvite(item)">作废</button></span>
+        </div>
       </div>
     </div>
 
