@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { api, session } from '../api'
+import ThemeIcon from '../components/ThemeIcon.vue'
 
 const challenges = ref([])
 const scoreboard = ref({ participants: 0, published_challenges: 0, total_solves: 0, rankings: [] })
@@ -43,7 +44,7 @@ onMounted(async () => {
         <div v-if="!challenges.length" class="empty">暂无已发布题目</div>
         <RouterLink v-for="challenge in challenges.slice(0, 4)" :key="challenge.id" class="compact-challenge" :to="`/${challenge.mode}/${challenge.id}`">
           <span class="mode-icon">{{ challenge.mode === 'ctf' ? 'CTF' : 'AW' }}</span>
-          <span class="grow"><b>{{ challenge.title }}</b><small>{{ challenge.category }} · {{ challenge.difficulty }}</small></span>
+          <span class="grow"><b>{{ challenge.title }}</b><small class="compact-meta"><ThemeIcon :category="challenge.category" :size="12" />{{ challenge.category }} · {{ challenge.difficulty }}</small></span>
           <span :class="['points', { solved: challenge.solved }]">{{ challenge.solved ? '✓ 已解' : `+${challenge.points}` }}</span>
         </RouterLink>
       </div>
