@@ -352,7 +352,7 @@ onMounted(load)
   <section>
     <div class="page-heading">
       <div>
-        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.2</p>
+        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.3-HOTFIX.2</p>
         <h1>平台管理<span class="accent">.</span></h1>
         <p class="lead">管理题目镜像、Hints、成员与上线状态。</p>
       </div>
