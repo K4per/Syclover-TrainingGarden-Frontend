@@ -27,7 +27,7 @@ function logout() {
           <RouterLink to="/" @click="menuOpen = false">总览</RouterLink>
           <RouterLink to="/practice" @click="menuOpen = false">练习大厅</RouterLink>
           <RouterLink to="/scoreboard" @click="menuOpen = false">排行榜</RouterLink>
-          <RouterLink v-if="session.user?.role === 'admin'" to="/admin" @click="menuOpen = false">管理</RouterLink>
+          <RouterLink v-if="['admin', 'root_admin'].includes(session.user?.role)" to="/admin" @click="menuOpen = false">管理</RouterLink>
         </nav>
         <div class="user-menu">
           <span class="status-dot" />
@@ -38,7 +38,7 @@ function logout() {
             </span>
             <span class="user-name">{{ session.user?.username }}</span>
           </RouterLink>
-          <span class="role-tag">{{ session.user?.role === 'admin' ? '管理员' : '选手' }}</span>
+          <span class="role-tag">{{ session.user?.role === 'root_admin' ? '根管理员' : session.user?.role === 'admin' ? '管理员' : '选手' }}</span>
           <button class="text-button" @click="logout">退出</button>
         </div>
       </header>
@@ -49,6 +49,6 @@ function logout() {
         <Transition name="page" mode="out-in"><component :is="Component" :key="route.fullPath" /></Transition>
       </RouterView>
     </main>
-    <footer v-if="loggedIn">Syclover Security Team · Alpha0.0.5 · Grow through breaking &amp; building</footer>
+    <footer v-if="loggedIn">Syclover Security Team · Alpha0.0.6 · Grow through breaking &amp; building</footer>
   </div>
 </template>

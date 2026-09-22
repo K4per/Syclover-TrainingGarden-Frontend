@@ -111,7 +111,7 @@ onMounted(load)
             <span v-else>{{ profile.username.slice(0, 1).toUpperCase() }}</span>
           </div>
           <div>
-            <p class="eyebrow">PLAYER PROFILE · {{ profile.role === 'admin' ? 'ADMIN' : 'MEMBER' }}</p>
+            <p class="eyebrow">PLAYER PROFILE · {{ profile.role === 'root_admin' ? 'ROOT ADMIN' : profile.role === 'admin' ? 'ADMIN' : 'MEMBER' }}</p>
             <h1>{{ profile.username }}<span class="accent">.</span></h1>
             <p class="profile-signature">{{ profile.signature || '还没有写下签名。' }}</p>
             <div class="profile-meta">
@@ -141,9 +141,10 @@ onMounted(load)
               <article v-for="achievement in displayAchievements" :key="achievement.slug" class="achievement-badge">
                 <div :class="['achievement-icon', `achievement-${achievement.icon}`]">
                   <svg v-if="achievement.icon === 'sprout'" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27V15M16 16C10 16 7 12.5 7 7c5.5 0 9 3 9 9ZM16 20c6 0 9-3.5 9-9-5.5 0-9 3-9 9Z" /></svg>
+                  <svg v-else-if="achievement.icon === 'peak-geek'" viewBox="0 0 32 32" aria-hidden="true"><path d="m16 4 3.3 6.7 7.4 1.1-5.3 5.2 1.3 7.4-6.7-3.5-6.7 3.5 1.3-7.4-5.3-5.2 7.4-1.1Z" /><path d="M10 28h12M13 24v4m6-4v4" /></svg>
                   <svg v-else viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4 19 8l5 .5-2.8 3.8 1.2 4.8-4.4-1.7-4.1 2.2.4-4.9L11 9.2l4.8-.9Z" /><path d="m9 19 2.5 3.5L16 21l4.5 1.5L23 19l-1 6H10Z" /></svg>
                 </div>
-                <div><h3>{{ achievement.name }}</h3><p>{{ achievement.description }}</p><small>{{ achievement.awarded_at ? new Date(achievement.awarded_at).toLocaleDateString('zh-CN') : '已获得' }}</small></div>
+                <div><h3>{{ achievement.name }}</h3><p class="achievement-description">{{ achievement.description }}</p><strong class="achievement-acquisition">{{ achievement.acquisition }}</strong><small>{{ achievement.awarded_at ? new Date(achievement.awarded_at).toLocaleDateString('zh-CN') : '已获得' }}</small></div>
               </article>
             </div>
             <div v-else class="empty">还没有获得成就徽章。</div>
