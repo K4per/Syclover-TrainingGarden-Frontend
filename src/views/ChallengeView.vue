@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api, downloadAsset, session } from '../api'
 import ChallengeIntel from '../components/ChallengeIntel.vue'
 import TagChips from '../components/TagChips.vue'
+import ThemeIcon from '../components/ThemeIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -131,7 +132,7 @@ onUnmounted(stopPolling)
   <section v-if="challenge">
     <RouterLink class="back-link" to="/ctf">← 返回 CTF 题库</RouterLink>
     <div :class="['challenge-hero', `theme-${challenge.category.toLowerCase()}`]">
-      <div><div class="tag-row"><span :class="['mode-badge', challenge.mode]">{{ challenge.mode.toUpperCase() }}</span><span class="difficulty" :class="challenge.difficulty">{{ challenge.difficulty }}</span><span>{{ challenge.category }}</span></div><h1>{{ challenge.title }}<span class="accent">.</span></h1><p class="lead">展开 Markdown 详情、获取 Hints，并在隔离环境中完成挑战。</p><TagChips class="hero-tags" :tags="challenge.tags" /></div>
+      <div><div class="tag-row"><span :class="['mode-badge', challenge.mode]">{{ challenge.mode.toUpperCase() }}</span><span class="difficulty" :class="challenge.difficulty">{{ challenge.difficulty }}</span><span class="theme-category"><ThemeIcon :category="challenge.category" :size="17" />{{ challenge.category }}</span></div><h1>{{ challenge.title }}<span class="accent">.</span></h1><p class="lead">展开 Markdown 详情、获取 Hints，并在隔离环境中完成挑战。</p><TagChips class="hero-tags" :tags="challenge.tags" /></div>
       <div class="point-orb"><strong>{{ challenge.points }}</strong><span>POINTS</span></div>
     </div>
     <ChallengeIntel :challenge="challenge" :hints="hints" />
