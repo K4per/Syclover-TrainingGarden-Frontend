@@ -11,6 +11,7 @@ const notice = ref(null)
 const saving = ref(false)
 const buildPanel = reactive({ active: false, challenge: null, status: 'building', log: '', cursor: 0, percent: 0 })
 let buildTimer = null
+const progressTimers = new Map()
 const tagEditor = ref(null)
 const tagDraft = reactive({ name: '', description: '' })
 const challengeTagEditor = ref(null)
@@ -22,7 +23,7 @@ const buildFile = ref(null)
 const hintChallenge = ref(null)
 const hints = ref([])
 const hintForm = reactive({ title: '', content: '', status: 'draft' })
-const emptyForm = () => ({ title: '', slug: '', description: '', category: 'Web', mode: 'ctf', difficulty: 'easy', points: 100, docker_image: '', internal_port: '', flag: '', status: 'published', tags: [] })
+const emptyForm = () => ({ title: '', slug: '', description: '', category: 'Web', mode: 'ctf', difficulty: 'easy', points: 100, docker_image: '', internal_port: '', flag: '', dynamic_flag: false, status: 'published', tags: [] })
 const form = reactive(emptyForm())
 const categories = computed(() => form.mode === 'awdp' ? ['Web', 'Pwn'] : ['Web', 'Pwn', 'Reverse', 'Misc', 'Crypto'])
 
@@ -38,6 +39,15 @@ async function load() {
       api('/users'), api('/challenges'), api('/challenges/tags/catalog'),
     ])
   } catch (err) { notice.value = { error: true, text: err.message } }
+}
+
+function toggleDynamicFlag() {
+  form.dynamic_flag = !form.dynamic_flag
+  if (form.dynamic_flag && !form.flag.includes('RAND')) {
+    const match = form.flag.match(/^([A-Za-z0-9_]{2,16})\{/)
+    form.flag = match ? `${match[1]}{RAND}` : 'SYC{RAND}'
+  }
+  if (!form.dynamic_flag) form.flag = form.flag.replace('RAND', 'training')
 }
 
 function toggleFormTag(name) {
@@ -108,6 +118,31 @@ async function deleteTag(entry) {
   } catch (err) { notice.value = { error: true, text: err.message } }
 }
 
+function resetBuildProgress(item) {
+  item.build_progress = { status: 'building', percent: 0, log: '' }
+  if (progressTimers.get(item.id)) clearInterval(progressTimers.get(item.id))
+  const timer = setInterval(async () => {
+    try {
+      const result = await api(`/challenges/${item.id}/build/progress?cursor=${item.build_progress.cursor || 0}`)
+      item.build_progress.cursor = result.cursor
+      item.build_progress.percent = result.percent ?? item.build_progress.percent
+      item.build_progress.status = result.status
+      if (result.data) item.build_progress.log += result.data
+      if (result.finished) {
+        clearInterval(timer)
+        progressTimers.delete(item.id)
+        item.build_progress.percent = 100
+        const detail = await api(`/challenges/${item.id}`)
+        Object.assign(item, detail)
+      }
+    } catch {
+      clearInterval(timer)
+      progressTimers.delete(item.id)
+    }
+  }, 800)
+  progressTimers.set(item.id, timer)
+}
+
 function stopBuildWatch() {
   if (buildTimer) { clearInterval(buildTimer); buildTimer = null }
 }
@@ -155,7 +190,11 @@ function closeBuildPanel() {
   buildPanel.active = false
   buildPanel.challenge = null
 }
-onUnmounted(stopBuildWatch)
+onUnmounted(() => {
+  stopBuildWatch()
+  progressTimers.forEach((timer) => clearInterval(timer))
+  progressTimers.clear()
+})
 async function uploadScript(item, kind, file) {
   if (!file) return null
   const query = new URLSearchParams({ kind, filename: file.name })
@@ -166,11 +205,12 @@ async function uploadScript(item, kind, file) {
   if (result.validation_status !== 'valid') throw new Error(`${kind === 'check_script' ? 'Check' : 'Fix'} 脚本校验失败：${result.validation_output}`)
   return result
 }
-async function uploadBuild(item, file) {
+async function uploadBuild(item, file, { showPanel = false } = {}) {
   if (!file) return null
   const query = new URLSearchParams({ filename: file.name })
   item.build_status = 'building'
-  watchBuild(item)
+  if (showPanel) watchBuild(item)
+  else resetBuildProgress(item)
   try {
     const result = await api(`/challenges/${item.id}/build?${query}`, {
       method: 'POST', body: await file.arrayBuffer(), headers: { 'Content-Type': 'application/zip' },
@@ -178,9 +218,11 @@ async function uploadBuild(item, file) {
     item.docker_image = result.image; item.internal_port = result.internal_port
     item.detected_port = result.detected_port
     item.build_status = result.status; item.build_output = result.output
-    if (!buildPanel.log) buildPanel.log = result.output
-    buildPanel.percent = 100
-    stopBuildWatch()
+    if (buildPanel.challenge?.id === item.id) {
+      if (!buildPanel.log) buildPanel.log = result.output
+      buildPanel.percent = 100
+      stopBuildWatch()
+    }
     return result
   } catch (err) {
     item.build_status = 'failed'
@@ -195,15 +237,21 @@ async function createChallenge() {
   try {
     const desiredStatus = form.status
     const payload = {
-      ...form, points: Number(form.points), tags: [...form.tags],
+      ...form, points: Number(form.points), tags: [...form.tags], dynamic_flag: form.dynamic_flag,
       internal_port: form.internal_port ? Number(form.internal_port) : null,
       docker_image: form.docker_image || null,
       status: (form.mode === 'awdp' || buildFile.value) ? 'draft' : desiredStatus,
     }
     const created = await api('/challenges', { method: 'POST', body: payload })
+    let buildSummary = ''
     if (buildFile.value) {
+      // The upload form only registers the archive; progress and logs belong to the
+      // challenge management view so a build can be watched from anywhere.
+      closeBuildPanel()
       const built = await uploadBuild(created, buildFile.value)
-      if (built?.port_warning) notice.value = { error: true, text: built.port_warning }
+      buildSummary = built?.port_warning
+        ? `；镜像已构建，但端口需要确认：${built.port_warning}`
+        : `；镜像 ${built?.image || ''} 构建成功`
     }
     if (created.mode === 'awdp') {
       await uploadScript(created, 'check_script', checkFile.value)
@@ -212,7 +260,10 @@ async function createChallenge() {
     if (desiredStatus === 'published' && created.status !== 'published') Object.assign(created, await api(`/challenges/${created.id}`, { method: 'PATCH', body: { status: 'published' } }))
     challenges.value.push(created)
     Object.assign(form, emptyForm()); checkFile.value = null; fixFile.value = null; buildFile.value = null
-    notice.value = { text: `${created.mode.toUpperCase()} 题目创建成功` }
+    notice.value = {
+      error: Boolean(buildSummary.includes('端口需要确认')),
+      text: `${created.mode.toUpperCase()} 题目创建成功${buildSummary}`,
+    }
   } catch (err) { notice.value = { error: true, text: err.message }; await load() }
   finally { saving.value = false }
 }
@@ -234,7 +285,7 @@ async function replaceScript(item, kind, file) {
 }
 async function replaceBuild(item, file) {
   if (!file) return
-  try { const result = await uploadBuild(item, file); notice.value = { text: `镜像构建成功：${result.image}` } }
+  try { const result = await uploadBuild(item, file, { showPanel: true }); notice.value = { text: `镜像构建成功：${result.image}` } }
   catch (err) { notice.value = { error: true, text: err.message } }
 }
 async function manageHints(item) {
@@ -299,6 +350,10 @@ onMounted(load)
           <i :class="['status-pill', item.status]">{{ item.status === 'published' ? 'online' : 'offline' }}</i>
           <small :class="['build-state', item.build_status]">build: {{ item.build_status || 'none' }}</small>
           <small v-if="item.detected_port && item.internal_port && item.detected_port !== item.internal_port" class="build-state failed">端口 {{ item.internal_port }} ≠ EXPOSE {{ item.detected_port }}</small>
+          <div v-if="item.build_progress && item.build_progress.status === 'building'" class="row-progress">
+            <div class="progress-track"><div class="progress-fill" :style="{ width: `${item.build_progress.percent}%` }" /></div>
+            <small>构建中 {{ item.build_progress.percent }}% · 点「构建日志」查看</small>
+          </div>
         </span>
         <span class="row-actions">
           <label class="mini-upload">构建 ZIP<input type="file" accept=".zip,application/zip" @change="replaceBuild(item, $event.target.files[0]); $event.target.value = ''"></label>
@@ -424,6 +479,12 @@ onMounted(load)
         <label>容器端口<input v-model.number="form.internal_port" type="number" min="1" max="65535" placeholder="留空则读取 EXPOSE"><small>必须与镜像内服务真实监听的端口一致，留空时读取 Dockerfile 的 EXPOSE。</small></label>
         <label class="span-2">题目说明（Markdown）<textarea v-model.trim="form.description" required minlength="10" rows="8" placeholder="# 背景&#10;&#10;描述目标、代码片段与任务…" /><small>选手端可展开/隐藏，支持 Markdown；HTML 会经过安全过滤。</small></label>
         <label class="span-2">Flag<input v-model="form.flag" required minlength="3" placeholder="SYC{...}"></label>
+        <div class="span-2 dynamic-flag-field">
+          <button type="button" :class="['switch', { on: form.dynamic_flag }]" @click="toggleDynamicFlag">
+            <span class="knob" />{{ form.dynamic_flag ? '已启用动态 Flag' : '未启用动态 Flag' }}
+          </button>
+          <small>启用后平台会把 Flag 中的 <code>RAND</code> 替换为随机字符串，并为每个实例注入不同的值；关闭则所有实例共用同一 Flag。</small>
+        </div>
         <div class="span-2 tag-field">
           <span class="field-label">题目标签</span>
           <TagChips :tags="topicTags.map((entry) => entry.name)" :selected="form.tags" selectable @toggle="toggleFormTag" />

@@ -164,3 +164,18 @@ h1,h2,p { margin-top:0; }h1 { font-size:clamp(38px,5vw,66px);line-height:1.04;le
 .copy-row code { flex:1;word-break:break-all; }
 .tag-filter { display:flex;align-items:center;gap:12px;margin:-14px 0 24px;flex-wrap:wrap; }
 .card-tags { margin:12px 0 0; }
+
+/* Alpha0.0.3: dynamic flag switch, detached build progress, admin-only answer key. */
+.switch { display:inline-flex;align-items:center;gap:9px;background:#0b1b14;border:1px solid #234331;color:var(--muted);border-radius:999px;padding:8px 14px 8px 10px;font-size:12px;cursor:pointer;transition:.2s; }
+.switch .knob { width:28px;height:16px;border-radius:999px;background:#1d3a2a;position:relative;transition:.2s; }
+.switch .knob:after { content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#5d7568;transition:.2s; }
+.switch.on { color:var(--green);border-color:#2a6943; }
+.switch.on .knob { background:#17452c; }
+.switch.on .knob:after { left:14px;background:var(--green); }
+.dynamic-flag-field { display:flex;flex-direction:column;gap:8px;align-items:flex-start; }
+.dynamic-flag-field small { color:var(--muted);font-size:11px;line-height:1.6; }
+.dynamic-flag-field code { color:var(--green);font-family:JetBrains Mono; }
+.row-progress { display:flex;flex-direction:column;gap:5px;margin-top:6px;min-width:130px; }
+.row-progress small { color:#5d7568;font-size:9px; }
+.instance-flag.admin-only { border-color:#5d5027;background:#1a1708; }
+.instance-flag.admin-only b { color:var(--amber); }

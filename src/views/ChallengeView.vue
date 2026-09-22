@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api, downloadAsset } from '../api'
+import { api, downloadAsset, session } from '../api'
 import ChallengeIntel from '../components/ChallengeIntel.vue'
 import TagChips from '../components/TagChips.vue'
 
@@ -23,6 +23,7 @@ const activeInstance = computed(() => myInstances.value.find((item) => item.stat
 const failedInstance = computed(() => myInstances.value.find((item) => item.status === 'failed'))
 const pendingInstance = computed(() => myInstances.value.find((item) => item.status === 'starting'))
 const isWeb = computed(() => (challenge.value?.category || '').toLowerCase() === 'web')
+const isAdmin = computed(() => session.user?.role === 'admin')
 const connectCommand = computed(() => activeInstance.value?.connect_command
   || (activeInstance.value?.public_port ? `nc ${activeInstance.value.public_host} ${activeInstance.value.public_port}` : ''))
 const accessUrl = computed(() => activeInstance.value?.access_url
@@ -162,7 +163,7 @@ onUnmounted(stopPolling)
             </div>
             <div v-else-if="!starting" class="instance-empty"><div class="radar">◎</div><p>启动一个限时、隔离的 Docker 题目环境</p><button class="primary" :disabled="busy" @click="start">{{ busy ? '启动中…' : '启动环境' }}</button></div>
             <p v-if="failedInstance && !starting" class="alert error">上次启动失败：{{ failedInstance.error_message || '容器未能启动' }}</p>
-            <div v-if="activeInstance" class="instance-flag"><b>本实例 Flag</b><code>{{ activeInstance.instance_flag }}</code><p>该环境使用独立随机 Flag，提交本实例的 Flag 即可计分。</p></div>
+            <div v-if="activeInstance && isAdmin && activeInstance.instance_flag" class="instance-flag admin-only"><b>本实例 Flag（仅管理员可见）</b><code>{{ activeInstance.instance_flag }}</code><p>选手端不会显示该值，必须从题目服务中自行取得。</p></div>
             <div v-if="activeInstance || pendingInstance" class="instance-actions"><span v-if="activeInstance">到期时间 {{ new Date(activeInstance.expires_at).toLocaleString('zh-CN') }}</span><span v-else>正在创建容器…</span><button class="danger text-button" :disabled="busy" @click="stop">销毁环境</button></div>
           </template>
           <div v-else class="empty">该题目无需启动独立环境，请结合附件完成。</div>

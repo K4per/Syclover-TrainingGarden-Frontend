@@ -1,6 +1,6 @@
 # Syclover Training Garden Frontend
 
-版本：**Alpha0.0.2**
+版本：**Alpha0.0.3**
 
 Vue 3 + Vite 实现的 Syclover 训练平台界面，提供独立 CTF/AWDP 题库、五级难度、分类筛选、Solves/血榜、Markdown 详情与 Hints，以及包含即时镜像构建的管理员控制台。
 
