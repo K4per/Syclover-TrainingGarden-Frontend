@@ -32,7 +32,7 @@ const router = createRouter({
 router.beforeEach((to) => {
   if (!to.meta.public && !session.token) return '/login'
   if (to.path === '/login' && session.token) return '/'
-  if (to.meta.admin && session.user?.role !== 'admin') return '/'
+  if (to.meta.admin && !['admin', 'root_admin'].includes(session.user?.role)) return '/'
 })
 
 export default router

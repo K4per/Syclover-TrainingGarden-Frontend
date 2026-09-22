@@ -24,7 +24,7 @@ const activeInstance = computed(() => myInstances.value.find((item) => item.stat
 const failedInstance = computed(() => myInstances.value.find((item) => item.status === 'failed'))
 const pendingInstance = computed(() => myInstances.value.find((item) => item.status === 'starting'))
 const isWeb = computed(() => (challenge.value?.category || '').toLowerCase() === 'web')
-const isAdmin = computed(() => session.user?.role === 'admin')
+const isAdmin = computed(() => ['admin', 'root_admin'].includes(session.user?.role))
 const connectCommand = computed(() => activeInstance.value?.connect_command
   || (activeInstance.value?.public_port ? `nc ${activeInstance.value.public_host} ${activeInstance.value.public_port}` : ''))
 const accessUrl = computed(() => activeInstance.value?.access_url

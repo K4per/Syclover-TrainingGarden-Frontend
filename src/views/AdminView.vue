@@ -28,6 +28,7 @@ const buildFile = ref(null)
 const hintChallenge = ref(null)
 const hints = ref([])
 const hintForm = reactive({ title: '', content: '', status: 'draft' })
+const isRootAdmin = computed(() => session.user?.role === 'root_admin')
 const emptyForm = () => ({ title: '', slug: '', description: '', category: 'Web', mode: 'ctf', difficulty: 'easy', points: 100, docker_image: '', internal_port: '', flag: '', dynamic_flag: false, status: 'published', tags: [] })
 const form = reactive(emptyForm())
 const categories = computed(() => form.mode === 'awdp' ? ['Web', 'Pwn'] : ['Web', 'Pwn', 'Reverse', 'Misc', 'Crypto'])
@@ -40,9 +41,12 @@ const tagLabel = (name) => ({ dynamic: '动态', static: '静态', web: 'Web', p
 
 async function load() {
   try {
-    ;[users.value, challenges.value, tagCatalog.value] = await Promise.all([
-      api('/users'), api('/challenges'), api('/challenges/tags/catalog'),
-    ])
+    const requests = [api('/challenges'), api('/challenges/tags/catalog')]
+    if (isRootAdmin.value) requests.unshift(api('/users'))
+    const values = await Promise.all(requests)
+    if (isRootAdmin.value) users.value = values.shift()
+    challenges.value = values[0]
+    tagCatalog.value = values[1]
   } catch (err) { notice.value = { error: true, text: err.message } }
 }
 
@@ -366,7 +370,8 @@ async function updateUser(user, changes) {
 async function grantAchievement(user, slug) {
   try {
     await api(`/users/${user.id}/achievements/${slug}`, { method: 'POST' })
-    user.achievement_slugs = [...new Set([...(user.achievement_slugs || []), slug])]
+    const current = (user.achievement_slugs || []).filter((item) => !(slug === 'core_member' && item === 'sprout_member'))
+    user.achievement_slugs = [...new Set([...current, slug])]
     notice.value = { text: slug === 'core_member' ? `已授予 ${user.username} 核心组成员徽章` : '成就已授予' }
   } catch (err) { notice.value = { error: true, text: err.message } }
 }
@@ -382,12 +387,12 @@ onMounted(load)
   <section>
     <div class="page-heading">
       <div>
-        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.5</p>
+        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.6</p>
         <h1>平台管理<span class="accent">.</span></h1>
         <p class="lead">管理题目镜像、Hints、成员与上线状态。</p>
       </div>
     </div>
-    <div class="tabs admin-tabs"><button :class="{ active: tab === 'challenges' }" @click="tab = 'challenges'">题目管理</button><button :class="{ active: tab === 'tags' }" @click="tab = 'tags'">标签管理</button><button :class="{ active: tab === 'users' }" @click="tab = 'users'">成员管理</button><button :class="{ active: tab === 'create' }" @click="tab = 'create'">＋ 上传题目</button></div>
+    <div class="tabs admin-tabs"><button :class="{ active: tab === 'challenges' }" @click="tab = 'challenges'">题目管理</button><button :class="{ active: tab === 'tags' }" @click="tab = 'tags'">标签管理</button><button v-if="isRootAdmin" :class="{ active: tab === 'users' }" @click="tab = 'users'">成员管理</button><button :class="{ active: tab === 'create' }" @click="tab = 'create'">＋ 上传题目</button></div>
     <p v-if="notice" :class="['alert', notice.error ? 'error' : 'success']">{{ notice.text }}</p>
 
     <div v-if="tab === 'challenges'" class="panel table-panel">
@@ -450,9 +455,9 @@ onMounted(load)
       </div>
     </div>
 
-    <div v-if="tab === 'users'" class="panel table-panel">
+    <div v-if="tab === 'users' && isRootAdmin" class="panel table-panel">
       <div class="data-row user-data data-head"><span>成员</span><span>角色</span><span>状态</span><span>加入时间</span><span>操作</span></div>
-      <div v-for="user in users" :key="user.id" class="data-row user-data"><span><RouterLink class="admin-user-link" :to="`/profile/${user.id}`"><b>{{ user.username }}</b></RouterLink><small>{{ user.direction || '未设置方向' }} · {{ user.id.slice(0, 8) }}</small><span class="admin-achievements"><i v-if="user.achievement_slugs?.includes('sprout_member')" class="mini-badge sprout">新芽</i><i v-if="user.achievement_slugs?.includes('core_member')" class="mini-badge core">核心</i></span></span><span><select :value="user.role" :disabled="user.id === session.user?.id" @change="updateUser(user, { role: $event.target.value })"><option value="player">选手</option><option value="admin">管理员</option></select></span><span><i :class="['status-pill', user.is_active ? 'published' : 'archived']">{{ user.is_active ? 'active' : 'disabled' }}</i></span><span>{{ new Date(user.created_at).toLocaleDateString('zh-CN') }}</span><span class="row-actions"><button v-if="!user.achievement_slugs?.includes('core_member')" class="text-button" @click="grantAchievement(user, 'core_member')">授予核心组</button><button class="text-button" :disabled="user.id === session.user?.id" @click="updateUser(user, { is_active: !user.is_active })">{{ user.is_active ? '禁用' : '启用' }}</button><button class="text-button danger" :disabled="user.id === session.user?.id" @click="deleteUser(user)">删除</button></span></div>
+      <div v-for="user in users" :key="user.id" class="data-row user-data"><span><RouterLink class="admin-user-link" :to="`/profile/${user.id}`"><b>{{ user.username }}</b></RouterLink><small>{{ user.direction || '未设置方向' }} · {{ user.id.slice(0, 8) }}</small><span class="admin-achievements"><i v-if="user.achievement_slugs?.includes('sprout_member')" class="mini-badge sprout">新芽</i><i v-if="user.achievement_slugs?.includes('core_member')" class="mini-badge core">核心</i><i v-if="user.achievement_slugs?.includes('peak_geek_2025')" class="mini-badge peak">Peak</i></span></span><span><select :value="user.role" :disabled="user.id === session.user?.id || user.role === 'root_admin'" @change="updateUser(user, { role: $event.target.value })"><option value="player">选手</option><option value="admin">管理员</option><option v-if="user.role === 'root_admin'" value="root_admin">根管理员</option></select></span><span><i :class="['status-pill', user.is_active ? 'published' : 'archived']">{{ user.is_active ? 'active' : 'disabled' }}</i></span><span>{{ new Date(user.created_at).toLocaleDateString('zh-CN') }}</span><span class="row-actions"><button v-if="!user.achievement_slugs?.includes('core_member')" class="text-button" @click="grantAchievement(user, 'core_member')">授予核心组</button><button v-if="!user.achievement_slugs?.includes('peak_geek_2025')" class="text-button" @click="grantAchievement(user, 'peak_geek_2025')">授予 Peak</button><button class="text-button" :disabled="user.id === session.user?.id || user.role === 'root_admin'" @click="updateUser(user, { is_active: !user.is_active })">{{ user.is_active ? '禁用' : '启用' }}</button><button class="text-button danger" :disabled="user.id === session.user?.id || user.role === 'root_admin'" @click="deleteUser(user)">删除</button></span></div>
     </div>
 
     <div v-if="buildPanel.active" ref="buildPanelElement" class="panel build-panel">
