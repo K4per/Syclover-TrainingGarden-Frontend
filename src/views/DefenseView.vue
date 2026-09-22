@@ -104,7 +104,7 @@ async function deploy(asset) {
   busy.value = true
   try {
     const value = await api(`/awdp/instances/${activeInstance.value.id}/deploy/${asset.id}`, { method: 'POST' })
-    events.value.unshift(value); notice.value = { error: !value.success, text: value.output }
+    events.value.unshift(value); notice.value = { error: !value.success, spotlight: value.success, text: value.success ? `✓ Fix 部署成功！${value.output || ''}` : value.output }
     if (value.success) challenge.value = await api(`/challenges/${challenge.value.id}`)
   } catch (err) { notice.value = { error: true, text: err.message } }
   finally { busy.value = false }
@@ -116,7 +116,7 @@ async function submit() {
   busy.value = true; notice.value = null
   try {
     const value = await api(`/challenges/${challenge.value.id}/submit`, { method: 'POST', body: { flag: flag.value } })
-    notice.value = { error: !value.correct, text: `${value.message}${value.awarded_points ? `，获得 ${value.awarded_points} 分` : ''}` }
+    notice.value = { error: !value.correct, spotlight: value.correct, text: `${value.message}${value.awarded_points ? `，获得 ${value.awarded_points} 分` : ''}` }
     if (value.correct) {
       flag.value = ''
       challenge.value = await api(`/challenges/${challenge.value.id}`)
@@ -134,12 +134,12 @@ onUnmounted(stopPolling)
 <template>
   <section v-if="challenge">
     <RouterLink class="back-link" to="/awdp">← 返回 AWDP 题库</RouterLink>
-    <div class="challenge-hero">
+    <div :class="['challenge-hero', `theme-${challenge.category.toLowerCase()}`]">
       <div><div class="tag-row"><span class="mode-badge awdp">AWDP</span><span :class="['difficulty', challenge.difficulty]">{{ challenge.difficulty }}</span><span>{{ challenge.category }}</span></div><h1>{{ challenge.title }}<span class="accent">.</span></h1><p class="lead">攻击与防御独立记录 Solves 和前三血。</p><TagChips class="hero-tags" :tags="challenge.tags" /></div>
       <div class="point-orb"><strong>{{ challenge.points }}</strong><span>POINTS</span></div>
     </div>
     <ChallengeIntel :challenge="challenge" :hints="hints" />
-    <p v-if="notice" :class="['alert', notice.error ? 'error' : 'success']">{{ notice.text }}</p>
+    <p v-if="notice" role="status" :class="['alert', notice.error ? 'error' : 'success', { 'alert-spotlight': notice.spotlight }]">{{ notice.text }}<button v-if="notice.spotlight" class="text-button" aria-label="关闭成功提示" @click="notice = null">✕</button></p>
     <div class="two-column challenge-layout">
       <div>
         <article class="panel"><p class="eyebrow">AWDP TARGET</p><h2>攻防环境</h2>

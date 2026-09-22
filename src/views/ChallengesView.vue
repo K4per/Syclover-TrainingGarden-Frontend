@@ -50,7 +50,7 @@ onMounted(async () => {
       <p class="lead">{{ mode === 'ctf' ? '独立靶场、附件分析与 Flag 验证，专注漏洞利用能力。' : '在真实服务中完成攻击验证、补丁部署与自动 Check。' }}</p>
     </div></div>
     <div class="toolbar">
-      <div class="tabs"><button v-for="item in categoryOptions" :key="item" :class="{ active: category === item }" @click="category = item">{{ item === 'all' ? '全部分类' : item }}</button></div>
+      <div class="tabs"><button v-for="item in categoryOptions" :key="item" :class="[`theme-${item.toLowerCase()}`, { active: category === item }]" @click="category = item">{{ item === 'all' ? '全部分类' : item }}</button></div>
       <input v-model="search" class="search" placeholder="搜索题目…">
     </div>
     <div v-if="availableTags.length" class="tag-filter">
@@ -60,7 +60,7 @@ onMounted(async () => {
     <p v-if="error" class="alert error">{{ error }}</p>
     <div v-if="loading" class="empty">正在载入 {{ mode.toUpperCase() }} 训练目标…</div>
     <div v-else class="challenge-grid">
-      <RouterLink v-for="challenge in filtered" :key="challenge.id" class="challenge-card" :to="`/${mode}/${challenge.id}`">
+      <RouterLink v-for="challenge in filtered" :key="challenge.id" :class="['challenge-card', `theme-${challenge.category.toLowerCase()}`]" :to="`/${mode}/${challenge.id}`">
         <div class="card-top"><span :class="['mode-badge', challenge.mode]">{{ challenge.mode.toUpperCase() }}</span><span :class="['difficulty', challenge.difficulty]">{{ difficultyLabels[challenge.difficulty] }}</span></div>
         <p class="category">{{ challenge.category }}</p><h2>{{ challenge.title }}</h2><p>{{ challenge.description }}</p>
         <TagChips class="card-tags" :tags="challenge.tags" compact />

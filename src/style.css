@@ -183,3 +183,26 @@ h1,h2,p { margin-top:0; }h1 { font-size:clamp(38px,5vw,66px);line-height:1.04;le
 /* Hotfix: tag manager header and creation form. */
 .tag-heading { display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding-bottom:18px; }
 .tag-heading .primary { padding:9px 16px;font-size:12px; }
+
+/* Alpha 0.0.4: category identities and accessible motion. */
+.theme-pwn { --theme:#ff717b; --theme-rgb:255,80,95; --theme-icon:"💣"; }
+.theme-web { --theme:#64bcff; --theme-rgb:66,165,245; --theme-icon:"🌐"; }
+.theme-reverse { --theme:#b996ff; --theme-rgb:171,124,255; --theme-icon:"⟲"; }
+.theme-crypto { --theme:#f5ce67; --theme-rgb:245,196,81; --theme-icon:"🔐"; }
+.theme-misc { --theme:#61dfc9; --theme-rgb:77,208,180; --theme-icon:"🧩"; }
+.challenge-card { border-top:2px solid var(--theme,var(--green)); background:linear-gradient(145deg,rgba(var(--theme-rgb,56,239,125),.16),#091711); }
+.challenge-card::before { content:var(--theme-icon,""); width:auto;height:auto;border:0;right:18px;top:38px;font-size:66px;opacity:.16;pointer-events:none; }
+.challenge-card>* { position:relative; }
+.challenge-card .category { color:var(--theme,var(--green)); }
+.challenge-card:hover { border-color:var(--theme,var(--green)); }
+.tabs button[class*="theme-"]::before { content:var(--theme-icon);margin-right:7px; }
+.tabs button[class*="theme-"].active { color:var(--theme);border-color:var(--theme);background:rgba(var(--theme-rgb),.14); }
+.challenge-hero .point-orb { border-color:var(--theme,var(--green));box-shadow:inset 0 0 40px rgba(var(--theme-rgb,56,239,125),.12); }
+.challenge-hero .point-orb span { color:var(--theme,var(--green)); }
+.alert.alert-spotlight { position:fixed;top:90px;left:50%;transform:translateX(-50%);width:min(680px,calc(100vw - 32px));z-index:20;font-size:18px;font-weight:800;padding:24px;border:2px solid #72ffac;background:#103f28;box-shadow:0 8px 40px #0008,0 0 24px #38ef7d44;animation:success-pop .5s ease-out;max-height:45vh;overflow:auto; }
+.alert-spotlight::before { content:"✓ ";font-size:26px; }
+@keyframes success-pop { from { transform:translate(-50%,-12px) scale(.97);opacity:0; } to { transform:translateX(-50%);opacity:1; } }
+.page-enter-active,.page-leave-active { transition:opacity .18s ease,transform .18s ease; }
+.page-enter-from { opacity:0;transform:translateY(10px); }
+.page-leave-to { opacity:0;transform:translateY(-7px); }
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important;transition:none!important;scroll-behavior:auto!important; } }

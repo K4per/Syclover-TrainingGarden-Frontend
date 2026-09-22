@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { api, session } from '../api'
 import TagChips from '../components/TagChips.vue'
 
@@ -11,6 +11,10 @@ const notice = ref(null)
 const saving = ref(false)
 const buildPanel = reactive({ active: false, challenge: null, status: 'building', log: '', cursor: 0, percent: 0 })
 let buildTimer = null
+let buildGeneration = 0
+let pollingGeneration = null
+const buildPanelElement = ref(null)
+const buildRequestId = ref(null)
 const progressTimers = new Map()
 const tagEditor = ref(null)
 const tagDraft = reactive({ name: '', description: '' })
@@ -169,9 +173,14 @@ function stopBuildWatch() {
 }
 
 async function pollBuildLog() {
-  if (!buildPanel.challenge) return
+  if (!buildPanel.challenge || pollingGeneration === buildGeneration) return
+  const generation = buildGeneration
+  pollingGeneration = generation
   try {
     const result = await api(`/challenges/${buildPanel.challenge.id}/build/progress?cursor=${buildPanel.cursor}`)
+    if (generation !== buildGeneration) return
+    if (buildRequestId.value === buildPanel.challenge?.id && result.status !== 'building') return
+    if (result.status === 'none') { buildPanel.status = 'none'; stopBuildWatch(); return }
     if (result.data) buildPanel.log += result.data
     buildPanel.cursor = result.cursor
     buildPanel.status = result.status
@@ -189,12 +198,16 @@ async function pollBuildLog() {
       }
     }
   } catch (err) {
+    if (generation !== buildGeneration) return
     stopBuildWatch()
     notice.value = { error: true, text: err.message }
+  } finally {
+    if (pollingGeneration === generation) pollingGeneration = null
   }
 }
 
 function watchBuild(item) {
+  buildGeneration += 1
   buildPanel.active = true
   buildPanel.challenge = item
   buildPanel.status = 'building'
@@ -204,9 +217,11 @@ function watchBuild(item) {
   stopBuildWatch()
   buildTimer = setInterval(pollBuildLog, 700)
   pollBuildLog()
+  nextTick(() => buildPanelElement.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
 }
 
 function closeBuildPanel() {
+  buildGeneration += 1
   stopBuildWatch()
   buildPanel.active = false
   buildPanel.challenge = null
@@ -229,6 +244,7 @@ async function uploadScript(item, kind, file) {
 async function uploadBuild(item, file, { showPanel = false } = {}) {
   if (!file) return null
   const query = new URLSearchParams({ filename: file.name })
+  buildRequestId.value = item.id
   item.build_status = 'building'
   if (showPanel) watchBuild(item)
   else resetBuildProgress(item)
@@ -240,14 +256,24 @@ async function uploadBuild(item, file, { showPanel = false } = {}) {
     item.detected_port = result.detected_port
     item.build_status = result.status; item.build_output = result.output
     if (buildPanel.challenge?.id === item.id) {
-      if (!buildPanel.log) buildPanel.log = result.output
+      buildGeneration += 1
+      buildPanel.log = result.output
+      buildPanel.status = result.status
       buildPanel.percent = 100
       stopBuildWatch()
     }
     return result
   } catch (err) {
     item.build_status = 'failed'
+    if (buildPanel.challenge?.id === item.id) {
+      stopBuildWatch()
+      buildGeneration += 1
+      buildPanel.status = 'failed'
+      buildPanel.log += `\n${err.message}`
+    }
     throw err
+  } finally {
+    buildRequestId.value = null
   }
 }
 async function createChallenge() {
@@ -266,10 +292,7 @@ async function createChallenge() {
     const created = await api('/challenges', { method: 'POST', body: payload })
     let buildSummary = ''
     if (buildFile.value) {
-      // The upload form only registers the archive; progress and logs belong to the
-      // challenge management view so a build can be watched from anywhere.
-      closeBuildPanel()
-      const built = await uploadBuild(created, buildFile.value)
+      const built = await uploadBuild(created, buildFile.value, { showPanel: true })
       buildSummary = built?.port_warning
         ? `；镜像已构建，但端口需要确认：${built.port_warning}`
         : `；镜像 ${built?.image || ''} 构建成功`
@@ -352,7 +375,7 @@ onMounted(load)
   <section>
     <div class="page-heading">
       <div>
-        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.3-HOTFIX.2</p>
+        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.4</p>
         <h1>平台管理<span class="accent">.</span></h1>
         <p class="lead">管理题目镜像、Hints、成员与上线状态。</p>
       </div>
@@ -425,11 +448,11 @@ onMounted(load)
       <div v-for="user in users" :key="user.id" class="data-row user-data"><span><b>{{ user.username }}</b><small>{{ user.id.slice(0, 8) }}</small></span><span><select :value="user.role" :disabled="user.id === session.user?.id" @change="updateUser(user, { role: $event.target.value })"><option value="player">选手</option><option value="admin">管理员</option></select></span><span><i :class="['status-pill', user.is_active ? 'published' : 'archived']">{{ user.is_active ? 'active' : 'disabled' }}</i></span><span>{{ new Date(user.created_at).toLocaleDateString('zh-CN') }}</span><span class="row-actions"><button class="text-button" :disabled="user.id === session.user?.id" @click="updateUser(user, { is_active: !user.is_active })">{{ user.is_active ? '禁用' : '启用' }}</button><button class="text-button danger" :disabled="user.id === session.user?.id" @click="deleteUser(user)">删除</button></span></div>
     </div>
 
-    <div v-if="tab === 'challenges' && buildPanel.active" class="panel build-panel">
+    <div v-if="buildPanel.active" ref="buildPanelElement" class="panel build-panel">
       <div class="form-heading">
         <div>
           <p class="eyebrow">IMAGE BUILD · {{ buildPanel.challenge?.slug }}</p>
-          <h2>镜像构建{{ buildPanel.status === 'building' ? '进行中' : buildPanel.status === 'success' ? '完成' : '失败' }}</h2>
+          <h2>镜像构建{{ buildPanel.status === 'building' ? '进行中' : buildPanel.status === 'success' ? '完成' : buildPanel.status === 'none' ? '尚未开始' : '失败' }}</h2>
         </div>
         <button class="text-button" type="button" @click="closeBuildPanel">收起</button>
       </div>

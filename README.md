@@ -18,3 +18,10 @@ npm run build
 ```
 
 构建结果位于 `dist/`。仓库内的 `Dockerfile` 使用 Nginx 提供静态文件，并将 API 请求反向代理至 Compose 中的 `backend` 服务。
+
+## Alpha0.0.4
+
+- 上传 ZIP 时在上传页面实时显示构建日志，保留最终完整输出及成功/失败状态。
+- Web、Pwn、Reverse、Crypto、Misc 分类选项与卡片提供独立主题。
+- 页面切换过渡动画，尊重系统减少动态效果设置。
+- 正确 Flag 和防御补丁通过 Check 后显示可关闭的醒目成功提示。
