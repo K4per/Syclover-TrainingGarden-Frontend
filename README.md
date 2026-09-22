@@ -1,8 +1,8 @@
 # Syclover Training Garden Frontend
 
-当前版本：**Alpha0.0.6-hotfix.1**。CTF 分类主题使用 CSS 线条图形，不依赖 Emoji；Web 和 Pwn 使用自绘地球、炸弹线稿。
+当前版本：**Alpha0.0.6-hotfix.2**。CTF 分类主题使用 CSS 线条图形，不依赖 Emoji；Web 和 Pwn 使用自绘地球、炸弹线稿。
 
-版本：**Alpha0.0.6-hotfix.1**
+版本：**Alpha0.0.6-hotfix.2**
 
 Vue 3 + Vite 实现的 Syclover 训练平台界面，提供练习大厅、独立 CTF/AWDP 题库、个人主页、资料编辑、成就徽章、五级难度、分类筛选、Solves/血榜、Markdown 详情与 Hints，以及包含即时镜像构建的管理员控制台。
 
@@ -43,3 +43,7 @@ npm run build
 - 管理后台新增「邀请码」页（普通管理员与根管理员均可见）：批量生成（1–50 个，可填备注）、按全部/未使用/已使用筛选、复制单个或全部未使用邀请码、作废未使用的邀请码。
 - 邀请码列表显示状态、备注、生成者、使用者以及生成/使用时间；已使用的邀请码不提供作废按钮。
 - 版本标识更新为 Alpha0.0.6-hotfix.1。
+
+## Alpha0.0.6-hotfix.2
+
+- 本版本没有界面改动，仅版本标识更新为 Alpha0.0.6-hotfix.2；题目端口改为从后端配置的窗口内分配，实例地址与 `nc` 命令的展示方式不变。
