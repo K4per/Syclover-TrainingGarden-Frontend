@@ -1,10 +1,10 @@
 # Syclover Training Garden Frontend
 
-当前版本：**Alpha0.0.4-hotfix.1**。CTF 分类主题使用 CSS 线条图形，不依赖 Emoji。
+当前版本：**Alpha0.0.5**。CTF 分类主题使用 CSS 线条图形，不依赖 Emoji；Web 和 Pwn 使用自绘地球、炸弹线稿。
 
-版本：**Alpha0.0.3-hotfix.2**
+版本：**Alpha0.0.5**
 
-Vue 3 + Vite 实现的 Syclover 训练平台界面，提供独立 CTF/AWDP 题库、五级难度、分类筛选、Solves/血榜、Markdown 详情与 Hints，以及包含即时镜像构建的管理员控制台。
+Vue 3 + Vite 实现的 Syclover 训练平台界面，提供练习大厅、独立 CTF/AWDP 题库、个人主页、资料编辑、成就徽章、五级难度、分类筛选、Solves/血榜、Markdown 详情与 Hints，以及包含即时镜像构建的管理员控制台。
 
 ```bash
 npm install
@@ -27,3 +27,9 @@ npm run build
 - Web、Pwn、Reverse、Crypto、Misc 分类选项与卡片提供独立主题。
 - 页面切换过渡动画，尊重系统减少动态效果设置。
 - 正确 Flag 和防御补丁通过 Check 后显示可关闭的醒目成功提示。
+
+## Alpha0.0.5
+
+- CTF 与 AWDP 合并为练习大厅入口，分别进入对应题库。
+- 个人主页支持头像地址、签名、训练方向、密码修改和成就徽章。
+- 注册自动获得“新芽组成员”，管理员可授予“核心组成员”。

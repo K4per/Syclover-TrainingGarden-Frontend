@@ -21,7 +21,7 @@ onMounted(load)
     <div class="leaderboard panel">
       <div class="leader-head"><span>排名</span><span>选手</span><span>解题数</span><span>总分</span></div>
       <div v-for="entry in board.rankings" :key="entry.user_id" class="leader-row" :class="[{ me: entry.user_id === session.user?.id }, `place-${entry.rank}`]">
-        <span class="leader-rank">{{ entry.rank <= 3 ? ['◆','▲','●'][entry.rank - 1] : `#${String(entry.rank).padStart(2,'0')}` }}</span><span class="leader-user"><i>{{ entry.username[0].toUpperCase() }}</i><b>{{ entry.username }}</b><small v-if="entry.user_id === session.user?.id">YOU</small></span><span>{{ entry.solves }}</span><strong>{{ entry.score }} <small>PTS</small></strong>
+        <span class="leader-rank">{{ entry.rank <= 3 ? ['◆','▲','●'][entry.rank - 1] : `#${String(entry.rank).padStart(2,'0')}` }}</span><RouterLink class="leader-user" :to="`/profile/${entry.user_id}`"><i>{{ entry.username[0].toUpperCase() }}</i><b>{{ entry.username }}</b><small v-if="entry.user_id === session.user?.id">YOU</small></RouterLink><span>{{ entry.solves }}</span><strong>{{ entry.score }} <small>PTS</small></strong>
       </div>
       <div v-if="!board.rankings.length" class="empty">榜单还是空的，去拿下第一个 Flag 吧</div>
     </div>
