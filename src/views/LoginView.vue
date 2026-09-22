@@ -7,13 +7,16 @@ const router = useRouter()
 const mode = ref('login')
 const loading = ref(false)
 const error = ref('')
-const form = reactive({ username: '', password: '' })
+const form = reactive({ username: '', password: '', invite_code: '' })
 
 async function submit() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api(`/auth/${mode.value}`, { method: 'POST', body: form })
+    const body = mode.value === 'login'
+      ? { username: form.username, password: form.password }
+      : { username: form.username, password: form.password, invite_code: form.invite_code }
+    const data = await api(`/auth/${mode.value}`, { method: 'POST', body })
     setSession(data)
     router.push('/')
   } catch (err) {
@@ -41,10 +44,11 @@ async function submit() {
       <div class="mobile-brand"><img src="/syclover-logo.svg" alt="Syclover Training Garden"></div>
       <p class="kicker">{{ mode === 'login' ? 'WELCOME BACK' : 'JOIN THE GARDEN' }}</p>
       <h2>{{ mode === 'login' ? '进入训练场' : '创建选手账号' }}</h2>
-      <p class="muted">{{ mode === 'login' ? '使用你的队员账号继续训练' : '用户名支持字母、数字、下划线与连字符' }}</p>
+      <p class="muted">{{ mode === 'login' ? '使用你的队员账号继续训练' : '注册需要核心组发放的一次性邀请码' }}</p>
       <form @submit.prevent="submit">
         <label>用户名<input v-model.trim="form.username" required minlength="3" maxlength="32" autocomplete="username" placeholder="your_handle"></label>
         <label>密码<input v-model="form.password" required minlength="8" maxlength="128" type="password" :autocomplete="mode === 'login' ? 'current-password' : 'new-password'" placeholder="至少 8 位字符"></label>
+        <label v-if="mode === 'register'">邀请码<input v-model.trim="form.invite_code" required minlength="4" maxlength="64" autocomplete="off" placeholder="SYC-XXXX-XXXX-XXXX"><small>每个邀请码只能注册一个账号，请向核心组成员索取。</small></label>
         <p v-if="error" class="alert error">{{ error }}</p>
         <button class="primary wide" :disabled="loading">{{ loading ? '处理中…' : mode === 'login' ? '登录平台 →' : '注册并进入 →' }}</button>
       </form>
