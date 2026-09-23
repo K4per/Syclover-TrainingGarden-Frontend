@@ -1,8 +1,8 @@
 # Syclover Training Garden Frontend
 
-当前版本：**Alpha0.0.6-hotfix.2**。CTF 分类主题使用 CSS 线条图形，不依赖 Emoji；Web 和 Pwn 使用自绘地球、炸弹线稿。
+当前版本：**Alpha0.0.7**。支持日间、夜间主题切换，个人主页可查看已解锁和待解锁的成就。
 
-版本：**Alpha0.0.6-hotfix.2**
+版本：**Alpha0.0.7**
 
 Vue 3 + Vite 实现的 Syclover 训练平台界面，提供练习大厅、独立 CTF/AWDP 题库、个人主页、资料编辑、成就徽章、五级难度、分类筛选、Solves/血榜、Markdown 详情与 Hints，以及包含即时镜像构建的管理员控制台。
 
@@ -20,6 +20,12 @@ npm run build
 ```
 
 构建结果位于 `dist/`。仓库内的 `Dockerfile` 使用 Nginx 提供静态文件，并将 API 请求反向代理至 Compose 中的 `backend` 服务。
+
+## Alpha0.0.7
+
+- 登录页和站内导航均可切换日间、夜间主题，选择保存在浏览器本地。
+- 日间主题覆盖题库、练习大厅、个人主页、排行榜、管理页及表单；移动端也可切换。
+- 个人主页显示成就进度与未解锁徽章的获取条件。
 
 ## Alpha0.0.4
 

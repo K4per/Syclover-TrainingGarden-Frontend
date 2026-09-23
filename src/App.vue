@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { clearSession, session } from './api'
+import ThemeToggle from './components/ThemeToggle.vue'
+import { theme } from './theme'
 
 const route = useRoute()
 const router = useRouter()
@@ -20,7 +22,7 @@ function logout() {
     <template v-if="loggedIn">
       <header class="topbar">
         <RouterLink class="brand" to="/" @click="menuOpen = false">
-          <img class="brand-logo" src="/syclover-logo.svg" alt="Syclover Training Garden">
+          <img class="brand-logo" :src="theme === 'light' ? '/syclover-logo-light.svg' : '/syclover-logo.svg'" alt="Syclover Training Garden">
         </RouterLink>
         <button class="menu-toggle" aria-label="切换导航" @click="menuOpen = !menuOpen">☰</button>
         <nav :class="{ open: menuOpen }">
@@ -30,6 +32,7 @@ function logout() {
           <RouterLink v-if="['admin', 'root_admin'].includes(session.user?.role)" to="/admin" @click="menuOpen = false">管理</RouterLink>
         </nav>
         <div class="user-menu">
+          <ThemeToggle />
           <span class="status-dot" />
           <RouterLink class="user-profile-link" to="/profile" @click="menuOpen = false">
             <span class="user-avatar">
@@ -44,11 +47,12 @@ function logout() {
       </header>
       <div class="grid-glow" />
     </template>
+    <ThemeToggle v-else class="auth-theme-toggle" />
     <main :class="{ 'page-wrap': loggedIn }">
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in"><component :is="Component" :key="route.fullPath" /></Transition>
       </RouterView>
     </main>
-    <footer v-if="loggedIn">Syclover Security Team · Alpha0.0.6-hotfix.2 · Grow through breaking &amp; building</footer>
+    <footer v-if="loggedIn">Syclover Security Team · Alpha0.0.7 · Grow through breaking &amp; building</footer>
   </div>
 </template>
