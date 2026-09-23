@@ -2,6 +2,9 @@
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { api, session } from '../api'
 import TagChips from '../components/TagChips.vue'
+import AnnouncementsAdmin from '../components/AnnouncementsAdmin.vue'
+import CollectionsAdmin from '../components/CollectionsAdmin.vue'
+import AchievementsAdmin from '../components/AchievementsAdmin.vue'
 
 const users = ref([])
 const challenges = ref([])
@@ -10,6 +13,7 @@ const challengeMode = ref('all')
 const challengeStatus = ref('all')
 const challengeCategory = ref('all')
 const tagCatalog = ref([])
+const tagSearch = ref('')
 const invites = ref([])
 const inviteFilter = ref('all')
 const inviteBusy = ref(false)
@@ -25,8 +29,8 @@ const buildPanelElement = ref(null)
 const buildRequestId = ref(null)
 const progressTimers = new Map()
 const tagEditor = ref(null)
-const tagDraft = reactive({ name: '', description: '' })
-const tagCreator = reactive({ open: false, name: '', description: '' })
+const tagDraft = reactive({ name: '', description: '', sort_order: 100 })
+const tagCreator = reactive({ open: false, name: '', description: '', sort_order: 100 })
 const challengeTagEditor = ref(null)
 const challengeTagDraft = ref([])
 const challengeTagDraftInput = ref('')
@@ -47,6 +51,8 @@ watch(() => form.mode, () => {
   if (!categories.value.includes(form.category)) form.category = categories.value[0]
 })
 const topicTags = computed(() => tagCatalog.value.filter((entry) => entry.kind === 'topic'))
+const filteredTagCatalog = computed(() => tagCatalog.value.filter((entry) =>
+  `${entry.name} ${entry.description || ''}`.toLowerCase().includes(tagSearch.value.toLowerCase())))
 const challengeCategories = computed(() => [...new Set(challenges.value.map((item) => item.category))].sort())
 const filteredChallenges = computed(() => {
   const query = challengeSearch.value.trim().toLocaleLowerCase()
@@ -175,13 +181,14 @@ function openTagCreator() {
   tagCreator.open = true
   tagCreator.name = ''
   tagCreator.description = ''
+  tagCreator.sort_order = 100
 }
 
 async function createTag() {
   try {
     await api('/challenges/tags', {
       method: 'POST',
-      body: { name: tagCreator.name, description: tagCreator.description || null },
+      body: { name: tagCreator.name, description: tagCreator.description || null, sort_order: Number(tagCreator.sort_order) },
     })
     tagCreator.open = false
     tagCreator.name = ''
@@ -195,13 +202,14 @@ function startTagEdit(entry) {
   tagEditor.value = entry
   tagDraft.name = entry.name
   tagDraft.description = entry.description || ''
+  tagDraft.sort_order = entry.sort_order
 }
 
 async function saveTag() {
   if (!tagEditor.value) return
   try {
     await api(`/challenges/tags/${tagEditor.value.id}`, {
-      method: 'PATCH', body: { name: tagDraft.name, description: tagDraft.description },
+      method: 'PATCH', body: { name: tagDraft.name, description: tagDraft.description, sort_order: Number(tagDraft.sort_order) },
     })
     tagEditor.value = null
     tagCatalog.value = await api('/challenges/tags/catalog')
@@ -468,13 +476,17 @@ onMounted(load)
   <section>
     <div class="page-heading">
       <div>
-        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.8</p>
+        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.9</p>
         <h1>平台管理<span class="accent">.</span></h1>
-        <p class="lead">管理题目镜像、Hints、邀请码、成员与上线状态。</p>
+        <p class="lead">管理题目、题集、公告、成就、标签与成员。</p>
       </div>
     </div>
-    <div class="tabs admin-tabs"><button :class="{ active: tab === 'challenges' }" @click="tab = 'challenges'">题目管理</button><button :class="{ active: tab === 'tags' }" @click="tab = 'tags'">标签管理</button><button :class="{ active: tab === 'invites' }" @click="tab = 'invites'">邀请码</button><button v-if="isRootAdmin" :class="{ active: tab === 'users' }" @click="tab = 'users'">成员管理</button><button :class="{ active: tab === 'create' }" @click="tab = 'create'">＋ 上传题目</button></div>
+    <div class="tabs admin-tabs"><button :class="{ active: tab === 'challenges' }" @click="tab = 'challenges'">题目管理</button><button :class="{ active: tab === 'collections' }" @click="tab = 'collections'">题集</button><button :class="{ active: tab === 'announcements' }" @click="tab = 'announcements'">公告</button><button :class="{ active: tab === 'achievements' }" @click="tab = 'achievements'">成就</button><button :class="{ active: tab === 'tags' }" @click="tab = 'tags'">标签管理</button><button :class="{ active: tab === 'invites' }" @click="tab = 'invites'">邀请码</button><button v-if="isRootAdmin" :class="{ active: tab === 'users' }" @click="tab = 'users'">成员管理</button><button :class="{ active: tab === 'create' }" @click="tab = 'create'">＋ 上传题目</button></div>
     <p v-if="notice" :class="['alert', notice.error ? 'error' : 'success']">{{ notice.text }}</p>
+
+    <CollectionsAdmin v-if="tab === 'collections'" :challenges="challenges" />
+    <AnnouncementsAdmin v-if="tab === 'announcements'" />
+    <AchievementsAdmin v-if="tab === 'achievements'" :users="users" />
 
     <div v-if="tab === 'challenges'" class="admin-filter-bar panel">
       <label>搜索题目<input v-model="challengeSearch" type="search" placeholder="名称、标识或标签"></label>
@@ -625,9 +637,10 @@ onMounted(load)
         <button class="primary" type="button" @click="openTagCreator">＋ 新建标签</button>
       </div>
       <p class="muted">知识点标签可重命名和删除；动态/静态由题目环境自动判定，不能修改。</p>
+      <label class="tag-search">搜索标签<input v-model.trim="tagSearch" type="search" placeholder="名称或说明"></label>
       <div class="data-row tag-data data-head"><span>标签</span><span>类型</span><span>题目数</span><span>说明</span><span>操作</span></div>
-      <div v-for="entry in tagCatalog" :key="entry.id" class="data-row tag-data">
-        <span><b>{{ tagLabel(entry.name) }}</b><small>{{ entry.name }}</small></span>
+      <div v-for="entry in filteredTagCatalog" :key="entry.id" class="data-row tag-data">
+        <span><b>{{ tagLabel(entry.name) }}</b><small>{{ entry.name }} · 顺序 {{ entry.sort_order }}</small></span>
         <span><i :class="['status-pill', entry.kind === 'state' ? 'archived' : 'published']">{{ entry.kind === 'state' ? '自动' : '知识点' }}</i></span>
         <span>{{ entry.challenge_count }}</span>
         <span>{{ entry.description || '—' }}</span>
@@ -639,15 +652,18 @@ onMounted(load)
           <span v-else class="muted">自动维护</span>
         </span>
       </div>
+      <p v-if="!filteredTagCatalog.length" class="empty">没有匹配的标签</p>
       <form v-if="tagCreator.open" class="inline-tag-form" @submit.prevent="createTag">
         <label>新标签名<input v-model.trim="tagCreator.name" required minlength="1" maxlength="32" placeholder="例如：stack-overflow"></label>
         <label>说明<input v-model.trim="tagCreator.description" maxlength="200" placeholder="可选"></label>
+        <label>显示顺序<input v-model.number="tagCreator.sort_order" type="number" min="0" max="10000"></label>
         <button class="primary" type="submit">创建</button>
         <button class="text-button" type="button" @click="tagCreator.open = false">取消</button>
       </form>
       <form v-if="tagEditor" class="inline-tag-form" @submit.prevent="saveTag">
         <label>标签名<input v-model.trim="tagDraft.name" required minlength="1" maxlength="32"></label>
         <label>说明<input v-model.trim="tagDraft.description" maxlength="200" placeholder="可选"></label>
+        <label>显示顺序<input v-model.number="tagDraft.sort_order" type="number" min="0" max="10000"></label>
         <button class="primary" type="submit">保存</button>
         <button class="text-button" type="button" @click="tagEditor = null">取消</button>
       </form>

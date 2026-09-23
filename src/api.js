@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import { notify } from './notifications'
 
 const SESSION_KEY = 'syclover-session-v2'
 localStorage.removeItem('syclover-session')
@@ -42,6 +43,7 @@ export async function api(path, options = {}) {
       message = payload.detail || message
       if (Array.isArray(message)) message = message.map((item) => item.msg).join('；')
     } catch { /* keep the fallback */ }
+    notify(message, 'error')
     throw new Error(message)
   }
   if (response.status === 204) return null
@@ -51,7 +53,7 @@ export async function api(path, options = {}) {
 export async function downloadAsset(asset) {
   const headers = session.token ? { Authorization: `Bearer ${session.token}` } : {}
   const response = await fetch(asset.download_url, { headers })
-  if (!response.ok) throw new Error('附件下载失败')
+  if (!response.ok) { notify('附件下载失败', 'error'); throw new Error('附件下载失败') }
   const url = URL.createObjectURL(await response.blob())
   const link = document.createElement('a')
   link.href = url

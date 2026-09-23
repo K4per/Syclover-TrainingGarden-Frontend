@@ -11,6 +11,10 @@ const challenges = ref([])
 const category = ref('all')
 const tag = ref('')
 const tagCatalog = ref([])
+const visibleTagCatalog = computed(() => tagCatalog.value.map((entry) => ({
+  ...entry,
+  challenge_count: challenges.value.filter((item) => (item.tags || []).includes(entry.name)).length,
+})))
 const search = ref('')
 const loading = ref(true)
 const error = ref('')
@@ -20,9 +24,12 @@ const categoryOptions = computed(() => mode.value === 'awdp'
 const difficultyLabels = { noob: 'Noob', easy: 'Easy', normal: 'Normal', hard: 'Hard', insane: 'Insane' }
 const availableTags = computed(() => {
   const names = new Set()
-  tagCatalog.value.forEach((entry) => names.add(entry.name))
   challenges.value.forEach((item) => (item.tags || []).forEach((value) => names.add(value)))
-  return [...names]
+  return [...names].sort((left, right) => {
+    const leftOrder = tagCatalog.value.find((entry) => entry.name === left)?.sort_order ?? 100
+    const rightOrder = tagCatalog.value.find((entry) => entry.name === right)?.sort_order ?? 100
+    return leftOrder - rightOrder || left.localeCompare(right)
+  })
 })
 const filtered = computed(() => challenges.value.filter((item) =>
   (category.value === 'all' || item.category === category.value) &&
@@ -60,7 +67,7 @@ onMounted(async () => {
       <input v-model="search" class="search" placeholder="搜索题目…">
     </div>
     <div v-if="availableTags.length" class="tag-filter">
-      <TagChips :tags="availableTags" :selected="tag ? [tag] : []" selectable compact @toggle="toggleTag" />
+      <TagChips :tags="availableTags" :catalog="visibleTagCatalog" :selected="tag ? [tag] : []" selectable show-count compact @toggle="toggleTag" />
       <button v-if="tag" class="text-button" @click="tag = ''">清除标签</button>
     </div>
     <p v-if="error" class="alert error">{{ error }}</p>
@@ -69,7 +76,7 @@ onMounted(async () => {
       <RouterLink v-for="challenge in filtered" :key="challenge.id" :class="['challenge-card', `theme-${challenge.category.toLowerCase()}`]" :to="`/${mode}/${challenge.id}`">
         <div class="card-top"><span :class="['mode-badge', challenge.mode]">{{ challenge.mode.toUpperCase() }}</span><span :class="['difficulty', challenge.difficulty]">{{ difficultyLabels[challenge.difficulty] }}</span><span class="theme-mark"><ThemeIcon :category="challenge.category" :size="30" /></span></div>
         <p class="category"><ThemeIcon :category="challenge.category" :size="14" /><span>{{ challenge.category }}</span></p><h2>{{ challenge.title }}</h2><p>{{ challenge.description }}</p>
-        <TagChips class="card-tags" :tags="challenge.tags" compact />
+        <TagChips class="card-tags" :tags="challenge.tags" :catalog="tagCatalog" compact />
         <div class="card-bottom">
           <strong>{{ challenge.points }} <small>PTS</small></strong>
           <span class="card-state">

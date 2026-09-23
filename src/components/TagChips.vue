@@ -4,6 +4,8 @@ const props = defineProps({
   selected: { type: Array, default: () => [] },
   selectable: { type: Boolean, default: false },
   compact: { type: Boolean, default: false },
+  catalog: { type: Array, default: () => [] },
+  showCount: { type: Boolean, default: false },
 })
 const emit = defineEmits(['toggle'])
 
@@ -20,6 +22,7 @@ function labelOf(tag) {
 function kindOf(tag) {
   return stateTags.includes(tag) ? 'state' : 'topic'
 }
+function detailOf(tag) { return props.catalog.find((item) => item.name === tag) }
 </script>
 
 <template>
@@ -30,10 +33,10 @@ function kindOf(tag) {
       type="button"
       :class="['tag-chip', kindOf(tag), { active: selected.includes(tag), readonly: !selectable }]"
       :disabled="!selectable"
-      :title="kindOf(tag) === 'state' ? '由题目是否配置 Docker 环境自动决定' : tag"
+      :title="detailOf(tag)?.description || (kindOf(tag) === 'state' ? '由题目是否配置 Docker 环境自动决定' : tag)"
       @click="emit('toggle', tag)"
     >
-      {{ labelOf(tag) }}
+      {{ labelOf(tag) }}<small v-if="showCount && detailOf(tag)"> {{ detailOf(tag).challenge_count }}</small>
     </button>
     <span v-if="!tags.length" class="muted">无标签</span>
   </div>

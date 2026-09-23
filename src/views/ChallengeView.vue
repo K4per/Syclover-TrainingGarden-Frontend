@@ -6,6 +6,7 @@ import ChallengeIntel from '../components/ChallengeIntel.vue'
 import TagChips from '../components/TagChips.vue'
 import ThemeIcon from '../components/ThemeIcon.vue'
 import InstanceCountdown from '../components/InstanceCountdown.vue'
+import { notify } from '../notifications'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,7 +20,6 @@ const starting = ref(false)
 const startStep = ref(0)
 const copied = ref('')
 let pollTimer = null
-let successTimer = null
 
 const myInstances = computed(() => instances.value.filter((item) => item.challenge_id === route.params.id))
 const activeInstance = computed(() => myInstances.value.find((item) => item.status === 'running'))
@@ -116,16 +116,15 @@ async function extend() {
   finally { busy.value = false }
 }
 async function submit() {
-  if (successTimer) clearTimeout(successTimer)
   busy.value = true; notice.value = null
   try {
     const value = await api(`/challenges/${challenge.value.id}/submit`, { method: 'POST', body: { flag: flag.value } })
-    notice.value = { error: !value.correct, fade: value.correct, text: `${value.message}${value.awarded_points ? `，获得 ${value.awarded_points} 分` : ''}` }
+    const message = `${value.message}${value.awarded_points ? `，获得 ${value.awarded_points} 分` : ''}`
+    notice.value = value.correct ? null : { error: true, text: message }
     if (value.correct) {
+      notify(message, 'success')
       flag.value = ''
       challenge.value = await api(`/challenges/${challenge.value.id}`)
-      const shown = notice.value
-      successTimer = setTimeout(() => { if (notice.value === shown) notice.value = null }, 3500)
     }
   } catch (err) { notice.value = { error: true, text: err.message } }
   finally { busy.value = false }
@@ -141,7 +140,7 @@ async function download(asset) {
   try { await downloadAsset(asset) } catch (err) { notice.value = { error: true, text: err.message } }
 }
 onMounted(load)
-onUnmounted(() => { stopPolling(); if (successTimer) clearTimeout(successTimer) })
+onUnmounted(stopPolling)
 </script>
 
 <template>

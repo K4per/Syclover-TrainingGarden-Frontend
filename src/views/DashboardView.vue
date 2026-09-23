@@ -2,10 +2,12 @@
 import { computed, onMounted, ref } from 'vue'
 import { api, session } from '../api'
 import ThemeIcon from '../components/ThemeIcon.vue'
+import MarkdownBlock from '../components/MarkdownBlock.vue'
 
 const challenges = ref([])
 const scoreboard = ref({ participants: 0, published_challenges: 0, total_solves: 0, rankings: [] })
 const instances = ref([])
+const announcements = ref([])
 const error = ref('')
 
 const solved = computed(() => challenges.value.filter((item) => item.solved).length)
@@ -14,8 +16,8 @@ const myRank = computed(() => scoreboard.value.rankings.find((item) => item.user
 
 onMounted(async () => {
   try {
-    ;[challenges.value, scoreboard.value, instances.value] = await Promise.all([
-      api('/challenges'), api('/scoreboard'), api('/instances'),
+    ;[challenges.value, scoreboard.value, instances.value, announcements.value] = await Promise.all([
+      api('/challenges'), api('/scoreboard'), api('/instances'), api('/announcements'),
     ])
   } catch (err) { error.value = err.message }
 })
@@ -32,6 +34,13 @@ onMounted(async () => {
       <RouterLink class="primary" to="/practice">进入练习大厅 →</RouterLink>
     </div>
     <p v-if="error" class="alert error">{{ error }}</p>
+    <div v-if="announcements.length" class="panel dashboard-announcements">
+      <div class="section-heading"><div><p class="eyebrow">BULLETIN</p><h2>最新公告</h2></div></div>
+      <article v-for="item in announcements.filter((entry) => entry.status === 'published').slice(0, 3)" :key="item.id" class="announcement-item">
+        <div class="section-heading"><h3>{{ item.title }}</h3><small>{{ new Date(item.updated_at).toLocaleDateString('zh-CN') }}</small></div>
+        <MarkdownBlock :source="item.content" />
+      </article>
+    </div>
     <div class="stat-grid">
       <article class="stat-card"><span>已解题目</span><strong>{{ solved }}<small>/ {{ challenges.length }}</small></strong><div class="progress"><i :style="{ width: `${challenges.length ? solved / challenges.length * 100 : 0}%` }" /></div></article>
       <article class="stat-card"><span>当前积分</span><strong>{{ myRank?.score || 0 }}<small>PTS</small></strong><p>全站排名 #{{ myRank?.rank || '—' }}</p></article>
