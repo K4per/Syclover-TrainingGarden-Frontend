@@ -8,14 +8,27 @@
 .theme-toggle:focus-visible { outline:2px solid var(--green);outline-offset:3px; }
 .theme-toggle svg { width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }
 .auth-theme-toggle { position:absolute;top:24px;right:28px;z-index:12; }
-.achievement-badge.locked { opacity:.64;border-style:dashed; }
-.achievement-badge.locked .achievement-icon { filter:grayscale(1); }
 @media (max-width:760px) {
   .topbar .theme-toggle { padding:7px; }
   .topbar .theme-toggle span { display:none; }
   .topbar .status-dot { display:none; }
   .auth-theme-toggle { top:22px;right:20px; }
 }
+.admin-filter-bar { display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding:18px; }
+.admin-filter-bar label { min-width:130px;flex:1; }
+.admin-filter-bar label:first-child { flex:2;min-width:220px; }
+.admin-filter-bar input,.admin-filter-bar select { width:100%; }
+.admin-filter-count { color:var(--muted);font:11px JetBrains Mono;white-space:nowrap;padding-bottom:12px; }
+.instance-actions { flex-wrap:wrap;gap:12px; }
+.instance-countdown { display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
+.instance-time { display:grid;gap:4px; }
+.instance-time small { color:var(--muted);font-size:10px; }
+.instance-countdown strong { color:var(--green);font:700 15px JetBrains Mono;margin-left:5px; }
+.instance-countdown .secondary { padding:7px 10px;font-size:11px; }
+.alert.alert-fade { position:fixed;top:90px;left:50%;transform:translateX(-50%);width:min(600px,calc(100vw - 32px));z-index:20;font-size:17px;font-weight:700;padding:20px 24px;box-shadow:0 12px 35px rgba(0,0,0,.24); }
+.notice-fade-leave-active { transition:opacity .7s ease; }
+.notice-fade-leave-to { opacity:0; }
+@media (prefers-reduced-motion:reduce) { .notice-fade-leave-active { transition:none; } }
 @media (max-width:380px) {
   .topbar .brand-logo { width:132px; }
   .topbar .user-menu .text-button { padding:4px; }

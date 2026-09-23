@@ -5,6 +5,7 @@ import { api, downloadAsset, session } from '../api'
 import ChallengeIntel from '../components/ChallengeIntel.vue'
 import TagChips from '../components/TagChips.vue'
 import ThemeIcon from '../components/ThemeIcon.vue'
+import InstanceCountdown from '../components/InstanceCountdown.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,6 +19,7 @@ const starting = ref(false)
 const startStep = ref(0)
 const copied = ref('')
 let pollTimer = null
+let successTimer = null
 
 const myInstances = computed(() => instances.value.filter((item) => item.challenge_id === route.params.id))
 const activeInstance = computed(() => myInstances.value.find((item) => item.status === 'running'))
@@ -102,14 +104,28 @@ async function stop() {
   } catch (err) { notice.value = { error: true, text: err.message } }
   finally { busy.value = false }
 }
+async function extend() {
+  if (!activeInstance.value) return
+  busy.value = true
+  try {
+    const value = await api(`/instances/${activeInstance.value.id}/extend`, { method: 'POST' })
+    const index = instances.value.findIndex((item) => item.id === value.id)
+    if (index >= 0) instances.value.splice(index, 1, value)
+    notice.value = { text: '环境已延长 30 分钟' }
+  } catch (err) { notice.value = { error: true, text: err.message }; await load() }
+  finally { busy.value = false }
+}
 async function submit() {
+  if (successTimer) clearTimeout(successTimer)
   busy.value = true; notice.value = null
   try {
     const value = await api(`/challenges/${challenge.value.id}/submit`, { method: 'POST', body: { flag: flag.value } })
-    notice.value = { error: !value.correct, spotlight: value.correct, text: `${value.message}${value.awarded_points ? `，获得 ${value.awarded_points} 分` : ''}` }
+    notice.value = { error: !value.correct, fade: value.correct, text: `${value.message}${value.awarded_points ? `，获得 ${value.awarded_points} 分` : ''}` }
     if (value.correct) {
       flag.value = ''
       challenge.value = await api(`/challenges/${challenge.value.id}`)
+      const shown = notice.value
+      successTimer = setTimeout(() => { if (notice.value === shown) notice.value = null }, 3500)
     }
   } catch (err) { notice.value = { error: true, text: err.message } }
   finally { busy.value = false }
@@ -125,7 +141,7 @@ async function download(asset) {
   try { await downloadAsset(asset) } catch (err) { notice.value = { error: true, text: err.message } }
 }
 onMounted(load)
-onUnmounted(stopPolling)
+onUnmounted(() => { stopPolling(); if (successTimer) clearTimeout(successTimer) })
 </script>
 
 <template>
@@ -136,7 +152,7 @@ onUnmounted(stopPolling)
       <div class="point-orb"><strong>{{ challenge.points }}</strong><span>POINTS</span></div>
     </div>
     <ChallengeIntel :challenge="challenge" :hints="hints" />
-    <p v-if="notice" role="status" :class="['alert', notice.error ? 'error' : 'success', { 'alert-spotlight': notice.spotlight }]">{{ notice.text }}<button v-if="notice.spotlight" class="text-button" aria-label="关闭成功提示" @click="notice = null">✕</button></p>
+    <Transition name="notice-fade"><p v-if="notice" role="status" :class="['alert', notice.error ? 'error' : 'success', { 'alert-fade': notice.fade }]">{{ notice.text }}</p></Transition>
     <div class="two-column challenge-layout">
       <div>
         <article class="panel">
@@ -165,7 +181,7 @@ onUnmounted(stopPolling)
             <div v-else-if="!starting" class="instance-empty"><div class="radar">◎</div><p>启动一个限时、隔离的 Docker 题目环境</p><button class="primary" :disabled="busy" @click="start">{{ busy ? '启动中…' : '启动环境' }}</button></div>
             <p v-if="failedInstance && !starting" class="alert error">上次启动失败：{{ failedInstance.error_message || '容器未能启动' }}</p>
             <div v-if="activeInstance && isAdmin && activeInstance.instance_flag" class="instance-flag admin-only"><b>本实例 Flag（仅管理员可见）</b><code>{{ activeInstance.instance_flag }}</code><p>选手端不会显示该值，必须从题目服务中自行取得。</p></div>
-            <div v-if="activeInstance || pendingInstance" class="instance-actions"><span v-if="activeInstance">到期时间 {{ new Date(activeInstance.expires_at).toLocaleString('zh-CN') }}</span><span v-else>正在创建容器…</span><button class="danger text-button" :disabled="busy" @click="stop">销毁环境</button></div>
+            <div v-if="activeInstance || pendingInstance" class="instance-actions"><InstanceCountdown v-if="activeInstance" :expires-at="activeInstance.expires_at" :busy="busy" @extend="extend" @expired="load" /><span v-else>正在创建容器…</span><button class="danger text-button" :disabled="busy" @click="stop">销毁环境</button></div>
           </template>
           <div v-else class="empty">该题目无需启动独立环境，请结合附件完成。</div>
         </article>

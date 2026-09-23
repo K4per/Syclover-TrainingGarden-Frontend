@@ -5,6 +5,7 @@ import { api, downloadAsset } from '../api'
 import ChallengeIntel from '../components/ChallengeIntel.vue'
 import TagChips from '../components/TagChips.vue'
 import ThemeIcon from '../components/ThemeIcon.vue'
+import InstanceCountdown from '../components/InstanceCountdown.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +25,7 @@ const startStep = ref(0)
 const copied = ref('')
 const startSteps = ['正在申请实例', '正在创建 Docker 容器', '正在等待服务监听', '环境就绪']
 let pollTimer = null
+let successTimer = null
 
 function stopPolling() {
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
@@ -85,6 +87,17 @@ async function stop() {
   catch (err) { notice.value = { error: true, text: err.message } }
   finally { busy.value = false }
 }
+async function extend() {
+  if (!activeInstance.value) return
+  busy.value = true
+  try {
+    const value = await api(`/instances/${activeInstance.value.id}/extend`, { method: 'POST' })
+    const index = instances.value.findIndex((item) => item.id === value.id)
+    if (index >= 0) instances.value.splice(index, 1, value)
+    notice.value = { text: '环境已延长 30 分钟' }
+  } catch (err) { notice.value = { error: true, text: err.message }; await load() }
+  finally { busy.value = false }
+}
 async function uploadPatch() {
   if (!patchFile.value) return
   busy.value = true; notice.value = null
@@ -114,13 +127,16 @@ async function loadEvents() {
   if (activeInstance.value) events.value = await api(`/awdp/instances/${activeInstance.value.id}/events`)
 }
 async function submit() {
+  if (successTimer) clearTimeout(successTimer)
   busy.value = true; notice.value = null
   try {
     const value = await api(`/challenges/${challenge.value.id}/submit`, { method: 'POST', body: { flag: flag.value } })
-    notice.value = { error: !value.correct, spotlight: value.correct, text: `${value.message}${value.awarded_points ? `，获得 ${value.awarded_points} 分` : ''}` }
+    notice.value = { error: !value.correct, fade: value.correct, text: `${value.message}${value.awarded_points ? `，获得 ${value.awarded_points} 分` : ''}` }
     if (value.correct) {
       flag.value = ''
       challenge.value = await api(`/challenges/${challenge.value.id}`)
+      const shown = notice.value
+      successTimer = setTimeout(() => { if (notice.value === shown) notice.value = null }, 3500)
     }
   } catch (err) { notice.value = { error: true, text: err.message } }
   finally { busy.value = false }
@@ -129,7 +145,7 @@ async function download(asset) {
   try { await downloadAsset(asset) } catch (err) { notice.value = { error: true, text: err.message } }
 }
 onMounted(load)
-onUnmounted(stopPolling)
+onUnmounted(() => { stopPolling(); if (successTimer) clearTimeout(successTimer) })
 </script>
 
 <template>
@@ -140,7 +156,7 @@ onUnmounted(stopPolling)
       <div class="point-orb"><strong>{{ challenge.points }}</strong><span>POINTS</span></div>
     </div>
     <ChallengeIntel :challenge="challenge" :hints="hints" />
-    <p v-if="notice" role="status" :class="['alert', notice.error ? 'error' : 'success', { 'alert-spotlight': notice.spotlight }]">{{ notice.text }}<button v-if="notice.spotlight" class="text-button" aria-label="关闭成功提示" @click="notice = null">✕</button></p>
+    <Transition name="notice-fade"><p v-if="notice" role="status" :class="['alert', notice.error ? 'error' : 'success', { 'alert-spotlight': notice.spotlight, 'alert-fade': notice.fade }]">{{ notice.text }}<button v-if="notice.spotlight" class="text-button" aria-label="关闭成功提示" @click="notice = null">✕</button></p></Transition>
     <div class="two-column challenge-layout">
       <div>
         <article class="panel"><p class="eyebrow">AWDP TARGET</p><h2>攻防环境</h2>
@@ -155,7 +171,7 @@ onUnmounted(stopPolling)
             <div class="copy-row"><code>{{ activeInstance.connect_command }}</code><button class="text-button" type="button" @click="copy(activeInstance.connect_command, 'nc')">{{ copied === 'nc' ? '已复制' : '复制 nc' }}</button></div>
           </div>
           <div v-else-if="!starting" class="instance-empty"><div class="radar">◎</div><p>启动隔离环境后进行攻击验证与补丁部署</p><button class="primary" :disabled="busy" @click="start">启动 AWDP 环境</button></div>
-          <div v-if="activeInstance || pendingInstance" class="instance-actions"><span v-if="activeInstance">到期时间 {{ new Date(activeInstance.expires_at).toLocaleString('zh-CN') }}</span><span v-else>正在创建容器…</span><button class="danger text-button" :disabled="busy" @click="stop">销毁环境</button></div>
+          <div v-if="activeInstance || pendingInstance" class="instance-actions"><InstanceCountdown v-if="activeInstance" :expires-at="activeInstance.expires_at" :busy="busy" @extend="extend" @expired="load" /><span v-else>正在创建容器…</span><button class="danger text-button" :disabled="busy" @click="stop">销毁环境</button></div>
         </article>
         <article class="panel attachments"><p class="eyebrow">RESOURCES</p><h2>题目附件</h2><div v-if="!challenge.attachments.length" class="empty">没有题目附件</div><button v-for="asset in challenge.attachments" :key="asset.id" class="file-row" @click="download(asset)"><span>↓</span><span class="grow"><b>{{ asset.original_name }}</b><small>{{ (asset.size_bytes / 1024).toFixed(1) }} KB</small></span><span>下载</span></button></article>
         <article class="panel"><p class="eyebrow">ATTACK FLAG</p><h2>攻击验证</h2><form class="inline-form" @submit.prevent="submit"><input v-model.trim="flag" required placeholder="SYC{...}" autocomplete="off"><button class="primary" :disabled="busy">提交 Flag</button></form><div v-if="challenge.solved" class="solved-stamp">✓<b>ATTACK VERIFIED</b><span>攻击侧 Flag 已完成</span></div></article>

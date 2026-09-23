@@ -53,6 +53,6 @@ function logout() {
         <Transition name="page" mode="out-in"><component :is="Component" :key="route.fullPath" /></Transition>
       </RouterView>
     </main>
-    <footer v-if="loggedIn">Syclover Security Team · Alpha0.0.7 · Grow through breaking &amp; building</footer>
+    <footer v-if="loggedIn">Syclover Security Team · Alpha0.0.8 · Grow through breaking &amp; building</footer>
   </div>
 </template>
