@@ -5,6 +5,10 @@ import TagChips from '../components/TagChips.vue'
 
 const users = ref([])
 const challenges = ref([])
+const challengeSearch = ref('')
+const challengeMode = ref('all')
+const challengeStatus = ref('all')
+const challengeCategory = ref('all')
 const tagCatalog = ref([])
 const invites = ref([])
 const inviteFilter = ref('all')
@@ -29,6 +33,8 @@ const challengeTagDraftInput = ref('')
 const checkFile = ref(null)
 const fixFile = ref(null)
 const buildFile = ref(null)
+const attachmentFiles = ref([])
+const formGeneration = ref(0)
 const hintChallenge = ref(null)
 const hints = ref([])
 const hintForm = reactive({ title: '', content: '', status: 'draft' })
@@ -41,6 +47,17 @@ watch(() => form.mode, () => {
   if (!categories.value.includes(form.category)) form.category = categories.value[0]
 })
 const topicTags = computed(() => tagCatalog.value.filter((entry) => entry.kind === 'topic'))
+const challengeCategories = computed(() => [...new Set(challenges.value.map((item) => item.category))].sort())
+const filteredChallenges = computed(() => {
+  const query = challengeSearch.value.trim().toLocaleLowerCase()
+  return challenges.value.filter((item) =>
+    (challengeMode.value === 'all' || item.mode === challengeMode.value) &&
+    (challengeStatus.value === 'all' || item.status === challengeStatus.value) &&
+    (challengeCategory.value === 'all' || item.category === challengeCategory.value) &&
+    (!query || [item.title, item.slug, item.category, ...(item.tags || [])]
+      .some((part) => String(part).toLocaleLowerCase().includes(query)))
+  )
+})
 const tagLabel = (name) => ({ dynamic: '动态', static: '静态', web: 'Web', pwn: 'Pwn', reverse: 'Reverse', crypto: 'Crypto', misc: 'Misc' }[name] || name)
 
 async function load() {
@@ -341,15 +358,17 @@ async function createChallenge() {
     notice.value = { error: true, text: 'AWDP 题目必须分别上传 Check 脚本和 Fix 脚本' }; return
   }
   saving.value = true; notice.value = null
+  let created = null
   try {
     const desiredStatus = form.status
     const payload = {
       ...form, points: Number(form.points), tags: [...form.tags], dynamic_flag: form.dynamic_flag,
       internal_port: form.internal_port ? Number(form.internal_port) : null,
       docker_image: form.docker_image || null,
-      status: (form.mode === 'awdp' || buildFile.value) ? 'draft' : desiredStatus,
+      status: (form.mode === 'awdp' || buildFile.value || attachmentFiles.value.length) ? 'draft' : desiredStatus,
     }
-    const created = await api('/challenges', { method: 'POST', body: payload })
+    created = await api('/challenges', { method: 'POST', body: payload })
+    for (const file of attachmentFiles.value) await sendAttachment(created, file)
     let buildSummary = ''
     if (buildFile.value) {
       const built = await uploadBuild(created, buildFile.value, { showPanel: true })
@@ -363,23 +382,29 @@ async function createChallenge() {
     }
     if (desiredStatus === 'published' && created.status !== 'published') Object.assign(created, await api(`/challenges/${created.id}`, { method: 'PATCH', body: { status: 'published' } }))
     challenges.value.push(created)
-    Object.assign(form, emptyForm()); checkFile.value = null; fixFile.value = null; buildFile.value = null
+    Object.assign(form, emptyForm()); checkFile.value = null; fixFile.value = null; buildFile.value = null; attachmentFiles.value = []; formGeneration.value += 1
     notice.value = {
       error: Boolean(buildSummary.includes('端口需要确认')),
       text: `${created.mode.toUpperCase()} 题目创建成功${buildSummary}`,
     }
-  } catch (err) { notice.value = { error: true, text: err.message }; await load() }
+  } catch (err) {
+    notice.value = { error: true, text: created ? `题目 ${created.title} 已保存为草稿，但后续上传或构建失败：${err.message}。请在题目管理中继续处理。` : err.message }
+    await load()
+  }
   finally { saving.value = false }
 }
 async function setStatus(item, status) {
   try { Object.assign(item, await api(`/challenges/${item.id}`, { method: 'PATCH', body: { status } })); notice.value = { text: status === 'published' ? '题目已上线' : '题目已下线' } }
   catch (err) { notice.value = { error: true, text: err.message } }
 }
+async function sendAttachment(item, file) {
+  const query = new URLSearchParams({ filename: file.name })
+  return api(`/challenges/${item.id}/attachments?${query}`, { method: 'POST', body: await file.arrayBuffer(), headers: { 'Content-Type': 'application/octet-stream' } })
+}
 async function uploadAttachment(item, file) {
   if (!file) return
   try {
-    const query = new URLSearchParams({ filename: file.name })
-    await api(`/challenges/${item.id}/attachments?${query}`, { method: 'POST', body: await file.arrayBuffer(), headers: { 'Content-Type': 'application/octet-stream' } })
+    await sendAttachment(item, file)
     notice.value = { text: `附件 ${file.name} 已添加到 ${item.title}` }
   } catch (err) { notice.value = { error: true, text: err.message } }
 }
@@ -443,7 +468,7 @@ onMounted(load)
   <section>
     <div class="page-heading">
       <div>
-        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.6-HOTFIX.2</p>
+        <p class="eyebrow">CONTROL CENTER · ALPHA 0.0.8</p>
         <h1>平台管理<span class="accent">.</span></h1>
         <p class="lead">管理题目镜像、Hints、邀请码、成员与上线状态。</p>
       </div>
@@ -451,9 +476,16 @@ onMounted(load)
     <div class="tabs admin-tabs"><button :class="{ active: tab === 'challenges' }" @click="tab = 'challenges'">题目管理</button><button :class="{ active: tab === 'tags' }" @click="tab = 'tags'">标签管理</button><button :class="{ active: tab === 'invites' }" @click="tab = 'invites'">邀请码</button><button v-if="isRootAdmin" :class="{ active: tab === 'users' }" @click="tab = 'users'">成员管理</button><button :class="{ active: tab === 'create' }" @click="tab = 'create'">＋ 上传题目</button></div>
     <p v-if="notice" :class="['alert', notice.error ? 'error' : 'success']">{{ notice.text }}</p>
 
+    <div v-if="tab === 'challenges'" class="admin-filter-bar panel">
+      <label>搜索题目<input v-model="challengeSearch" type="search" placeholder="名称、标识或标签"></label>
+      <label>模式<select v-model="challengeMode"><option value="all">全部模式</option><option value="ctf">CTF</option><option value="awdp">AWDP</option></select></label>
+      <label>分类<select v-model="challengeCategory"><option value="all">全部分类</option><option v-for="category in challengeCategories" :key="category" :value="category">{{ category }}</option></select></label>
+      <label>状态<select v-model="challengeStatus"><option value="all">全部状态</option><option value="published">已上线</option><option value="draft">草稿</option><option value="archived">已归档</option></select></label>
+      <span class="admin-filter-count">{{ filteredChallenges.length }} / {{ challenges.length }} 道题目</span>
+    </div>
     <div v-if="tab === 'challenges'" class="panel table-panel">
       <div class="data-row challenge-data data-head"><span>题目</span><span>模式 / 难度</span><span>分值</span><span>标签</span><span>状态</span><span>操作</span></div>
-      <div v-for="item in challenges" :key="item.id" class="data-row challenge-data">
+      <div v-for="item in filteredChallenges" :key="item.id" class="data-row challenge-data">
         <span><b>{{ item.title }}</b><small>{{ item.category }} · {{ item.slug }}</small></span>
         <span>{{ item.mode.toUpperCase() }} / {{ item.difficulty }}</span>
         <span>{{ item.points }}</span>
@@ -481,6 +513,7 @@ onMounted(load)
           <button class="text-button danger" @click="deleteChallenge(item)">删除</button>
         </span>
       </div>
+      <div v-if="!filteredChallenges.length" class="empty">没有符合筛选条件的题目</div>
     </div>
 
     <div v-if="tab === 'hints' && hintChallenge" class="hint-admin-layout">
@@ -620,7 +653,7 @@ onMounted(load)
       </form>
     </div>
 
-    <form v-if="tab === 'create'" class="panel challenge-form" @submit.prevent="createChallenge">
+    <form v-if="tab === 'create'" :key="formGeneration" class="panel challenge-form" @submit.prevent="createChallenge">
       <div class="form-heading"><p class="eyebrow">UPLOAD TRAINING TARGET</p><h2>上传 {{ form.mode.toUpperCase() }} 题目</h2></div>
       <div class="mode-selector"><button type="button" :class="{ active: form.mode === 'ctf' }" @click="form.mode = 'ctf'">CTF 题目</button><button type="button" :class="{ active: form.mode === 'awdp' }" @click="form.mode = 'awdp'">AWDP 题目</button></div>
       <div class="form-grid">
@@ -631,6 +664,7 @@ onMounted(load)
         <label>分值<input v-model.number="form.points" required type="number" min="1" max="10000"></label>
         <label>初始状态<select v-model="form.status"><option value="draft">下线</option><option value="published">上线</option></select></label>
         <label class="span-2">本地构建文件（ZIP）<input type="file" accept=".zip,application/zip" @change="buildFile = $event.target.files[0]"><small>上传题目时立即构建镜像；ZIP 中需包含且只能包含一个 Dockerfile。</small></label>
+        <label class="span-2">题目附件（可多选）<input type="file" multiple @change="attachmentFiles = Array.from($event.target.files || [])"><small>与题目一同上传，选手可在题目页下载。{{ attachmentFiles.length ? `已选择 ${attachmentFiles.length} 个文件：${attachmentFiles.map((file) => file.name).join('、')}` : '' }}</small></label>
         <label>已有 Docker 镜像<input v-model.trim="form.docker_image" placeholder="nginx:alpine（不上传 ZIP 时使用）"></label>
         <label>容器端口<input v-model.number="form.internal_port" type="number" min="1" max="65535" placeholder="留空则读取 EXPOSE"><small>必须与镜像内服务真实监听的端口一致，留空时读取 Dockerfile 的 EXPOSE。</small></label>
         <label class="span-2">题目说明（Markdown）<textarea v-model.trim="form.description" required minlength="10" rows="8" placeholder="# 背景&#10;&#10;描述目标、代码片段与任务…" /><small>选手端可展开/隐藏，支持 Markdown；HTML 会经过安全过滤。</small></label>
