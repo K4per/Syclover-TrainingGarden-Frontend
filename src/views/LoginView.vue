@@ -2,6 +2,7 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, setSession } from '../api'
+import { theme } from '../theme'
 
 const router = useRouter()
 const mode = ref('login')
@@ -41,7 +42,7 @@ async function submit() {
       </div>
     </div>
     <div class="login-panel">
-      <div class="mobile-brand"><img src="/syclover-logo.svg" alt="Syclover Training Garden"></div>
+      <div class="mobile-brand"><img :src="theme === 'light' ? '/syclover-logo-light.svg' : '/syclover-logo.svg'" alt="Syclover Training Garden"></div>
       <p class="kicker">{{ mode === 'login' ? 'WELCOME BACK' : 'JOIN THE GARDEN' }}</p>
       <h2>{{ mode === 'login' ? '进入训练场' : '创建选手账号' }}</h2>
       <p class="muted">{{ mode === 'login' ? '使用你的队员账号继续训练' : '注册需要核心组发放的一次性邀请码' }}</p>

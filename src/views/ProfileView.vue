@@ -18,7 +18,12 @@ const directions = ['Web', 'Pwn', 'Reverse', 'Crypto', 'Misc']
 
 const profileId = computed(() => route.params.id || session.user?.id)
 const isOwnProfile = computed(() => !route.params.id || route.params.id === session.user?.id)
-const displayAchievements = computed(() => profile.value?.achievements || [])
+const displayAchievements = computed(() => {
+  const earned = profile.value?.achievements || []
+  if (!isOwnProfile.value) return earned
+  const earnedBySlug = new Map(earned.map((item) => [item.slug, item]))
+  return catalog.value.map((item) => earnedBySlug.get(item.slug) || { ...item, locked: true })
+})
 
 function syncSession(updated) {
   if (!isOwnProfile.value || !session.user) return
@@ -136,15 +141,18 @@ onMounted(load)
       <div class="profile-layout">
         <div class="profile-main">
           <section class="panel achievement-panel">
-            <div class="section-heading"><div><p class="eyebrow">ACHIEVEMENTS</p><h2>成就徽章</h2></div><span class="achievement-count">{{ displayAchievements.length }} / {{ catalog.length }}</span></div>
+            <div class="section-heading"><div><p class="eyebrow">ACHIEVEMENTS</p><h2>成就徽章</h2></div><span class="achievement-count">{{ profile.achievements.length }} / {{ catalog.length }}</span></div>
             <div v-if="displayAchievements.length" class="achievement-grid">
-              <article v-for="achievement in displayAchievements" :key="achievement.slug" class="achievement-badge">
+              <article v-for="achievement in displayAchievements" :key="achievement.slug" :class="['achievement-badge', { locked: achievement.locked }]">
                 <div :class="['achievement-icon', `achievement-${achievement.icon}`]">
                   <svg v-if="achievement.icon === 'sprout'" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27V15M16 16C10 16 7 12.5 7 7c5.5 0 9 3 9 9ZM16 20c6 0 9-3.5 9-9-5.5 0-9 3-9 9Z" /></svg>
                   <svg v-else-if="achievement.icon === 'peak-geek'" viewBox="0 0 32 32" aria-hidden="true"><path d="m16 4 3.3 6.7 7.4 1.1-5.3 5.2 1.3 7.4-6.7-3.5-6.7 3.5 1.3-7.4-5.3-5.2 7.4-1.1Z" /><path d="M10 28h12M13 24v4m6-4v4" /></svg>
+                  <svg v-else-if="achievement.icon === 'first-solve'" viewBox="0 0 32 32" aria-hidden="true"><path d="M12 4h8v7l4 4-8 13-8-13 4-4Z" /><path d="M12 11h8M16 16v5" /></svg>
+                  <svg v-else-if="achievement.icon === 'five-solves' || achievement.icon === 'ten-solves'" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 25h22M9 25V15h5v10m4 0V9h5v16M8 11l6-6 4 4 6-6" /></svg>
+                  <svg v-else-if="achievement.icon === 'first-defense'" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3 27 7v9c0 7-5 11-11 13C10 27 5 23 5 16V7Z" /><path d="m11 16 3 3 7-7" /></svg>
                   <svg v-else viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4 19 8l5 .5-2.8 3.8 1.2 4.8-4.4-1.7-4.1 2.2.4-4.9L11 9.2l4.8-.9Z" /><path d="m9 19 2.5 3.5L16 21l4.5 1.5L23 19l-1 6H10Z" /></svg>
                 </div>
-                <div><h3>{{ achievement.name }}</h3><p class="achievement-description">{{ achievement.description }}</p><strong class="achievement-acquisition">{{ achievement.acquisition }}</strong><small>{{ achievement.awarded_at ? new Date(achievement.awarded_at).toLocaleDateString('zh-CN') : '已获得' }}</small></div>
+                <div><h3>{{ achievement.name }}</h3><p class="achievement-description">{{ achievement.description }}</p><strong class="achievement-acquisition">{{ achievement.acquisition }}</strong><small>{{ achievement.locked ? '尚未解锁' : achievement.awarded_at ? new Date(achievement.awarded_at).toLocaleDateString('zh-CN') : '已获得' }}</small></div>
               </article>
             </div>
             <div v-else class="empty">还没有获得成就徽章。</div>
