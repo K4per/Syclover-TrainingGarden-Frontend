@@ -9,6 +9,7 @@ import ScoreboardView from './views/ScoreboardView.vue'
 import AdminView from './views/AdminView.vue'
 import PracticeHallView from './views/PracticeHallView.vue'
 import ProfileView from './views/ProfileView.vue'
+import CollectionsView from './views/CollectionsView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -17,6 +18,8 @@ const router = createRouter({
     { path: '/', component: DashboardView },
     { path: '/challenges', redirect: '/practice' },
     { path: '/practice', component: PracticeHallView },
+    { path: '/sets', component: CollectionsView },
+    { path: '/sets/:id', component: CollectionsView },
     { path: '/ctf', component: ChallengesView, meta: { mode: 'ctf' } },
     { path: '/ctf/:id', component: ChallengeView },
     { path: '/awdp', component: ChallengesView, meta: { mode: 'awdp' } },

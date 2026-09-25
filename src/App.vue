@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { clearSession, session } from './api'
 import ThemeToggle from './components/ThemeToggle.vue'
+import NotificationCenter from './components/NotificationCenter.vue'
 import { theme } from './theme'
 
 const route = useRoute()
@@ -28,6 +29,7 @@ function logout() {
         <nav :class="{ open: menuOpen }">
           <RouterLink to="/" @click="menuOpen = false">总览</RouterLink>
           <RouterLink to="/practice" @click="menuOpen = false">练习大厅</RouterLink>
+          <RouterLink to="/sets" @click="menuOpen = false">题集</RouterLink>
           <RouterLink to="/scoreboard" @click="menuOpen = false">排行榜</RouterLink>
           <RouterLink v-if="['admin', 'root_admin'].includes(session.user?.role)" to="/admin" @click="menuOpen = false">管理</RouterLink>
         </nav>
@@ -48,11 +50,12 @@ function logout() {
       <div class="grid-glow" />
     </template>
     <ThemeToggle v-else class="auth-theme-toggle" />
+    <NotificationCenter />
     <main :class="{ 'page-wrap': loggedIn }">
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in"><component :is="Component" :key="route.fullPath" /></Transition>
       </RouterView>
     </main>
-    <footer v-if="loggedIn">Syclover Security Team · Alpha0.0.8 · Grow through breaking &amp; building</footer>
+    <footer v-if="loggedIn">Syclover Security Team · Alpha0.0.9 · Grow through breaking &amp; building</footer>
   </div>
 </template>

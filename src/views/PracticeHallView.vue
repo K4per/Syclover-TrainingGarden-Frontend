@@ -29,7 +29,7 @@ const practiceTracks = [
   <section>
     <div class="page-heading practice-heading">
       <div>
-        <p class="eyebrow">TRAINING HUB · ALPHA 0.0.6-HOTFIX.2</p>
+        <p class="eyebrow">TRAINING HUB · ALPHA 0.0.9</p>
         <h1>练习大厅<span class="accent">.</span></h1>
         <p class="lead">选择训练模式，进入对应题库。两种模式独立计分，训练记录会同步到个人主页。</p>
       </div>
