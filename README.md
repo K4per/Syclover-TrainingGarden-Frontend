@@ -1,6 +1,6 @@
 # Syclover Training Garden Frontend
 
-当前版本：**Alpha0.0.9**。支持公告、题集、独立成就管理和可回看的提示消息。
+当前版本：**Alpha0.0.9-hotfix.1**。支持公告、题集、独立成就管理和可回看的提示消息。
 
 Vue 3 + Vite 实现的 Syclover 训练平台界面，提供练习大厅、独立 CTF/AWDP 题库、个人主页、资料编辑、成就徽章、五级难度、分类筛选、Solves/血榜、Markdown 详情与 Hints，以及包含即时镜像构建的管理员控制台。
 
@@ -18,6 +18,11 @@ npm run build
 ```
 
 构建结果位于 `dist/`。仓库内的 `Dockerfile` 使用 Nginx 提供静态文件，并将 API 请求反向代理至 Compose 中的 `backend` 服务。
+
+## Alpha0.0.9-hotfix.1
+
+- 保留上游反向代理传入的 `X-Forwarded-Proto`，未传入时回退到本地协议。
+- 部署时应限制前端容器只接受可信入口代理的流量，并由入口覆盖客户端提供的协议头。
 
 ## Alpha0.0.9
 

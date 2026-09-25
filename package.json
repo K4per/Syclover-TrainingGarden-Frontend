@@ -1,7 +1,7 @@
 {
   "name": "syclover-training-garden-frontend",
   "private": true,
-  "version": "0.0.9",
+  "version": "0.0.9-hotfix.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
